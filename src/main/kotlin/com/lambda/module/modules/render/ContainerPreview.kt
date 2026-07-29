@@ -37,12 +37,17 @@ import net.minecraft.block.ShulkerBoxBlock
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.ScreenRect
+import net.minecraft.client.gui.render.state.ColoredQuadGuiElementRenderState
 import net.minecraft.client.gui.render.state.GuiRenderState
 import net.minecraft.client.gui.render.state.ItemGuiElementRenderState
 import net.minecraft.client.gui.render.state.TextGuiElementRenderState
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.tooltip.TooltipComponent
+import net.minecraft.client.render.item.ItemRenderState
 import net.minecraft.client.render.item.KeyedItemRenderState
+import net.minecraft.client.texture.NativeImage
+import net.minecraft.client.texture.TextureSetup
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemDisplayContext
@@ -53,9 +58,13 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.Colors
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
+import net.minecraft.util.math.ColorHelper
+import net.minecraft.util.math.random.Random
 import net.minecraft.world.World
 import org.joml.Matrix3x2f
 import kotlin.math.max
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 object ContainerPreview : Module(
     name = "ContainerPreview",
@@ -74,6 +83,8 @@ object ContainerPreview : Module(
     @Tab(CONTENT_PREVIEW_TAB) private val previewItemYOffset by setting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }
     @Tab(CONTENT_PREVIEW_TAB) private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }
         .onValueChange { _, _ -> containerCache.clear() }
+    @Tab(CONTENT_PREVIEW_TAB) private val showFillBar by setting("Fill Bar", true, "Show a fill bar of item proportions along the bottom of container items")
+    @Tab(CONTENT_PREVIEW_TAB) private val showHighestItemCount by setting("Highest Item Count", true, "Show the total count of the most common item on container items")
 
     private val background = Identifier.ofVanilla("textures/gui/container/shulker_box.png")
 
@@ -363,19 +374,71 @@ object ContainerPreview : Module(
             val contents = container.shulkerBoxContents + container.bundleContents
             if (contents.isEmpty()) return@computeIfAbsent ContainerPreviewInfo(null, false)
 
-            val group = contents.filter { stack -> stack.item != Items.AIR }
+            val groups = contents.filter { stack -> stack.item != Items.AIR }
                 .groupBy { stack -> stack.item }
                 .map { (item, stacks) ->
-                    val stackWeight = if (previewItemWeightedCount) 64f / item.maxCount else 1f
-                    stacks.first() to (stacks.sumOf { it.count } * stackWeight)
+                    val rawCount = stacks.sumOf { it.count }
+                    val weight = if (previewItemWeightedCount) 64f / item.maxCount else 1f
+                    ItemGroup(stacks.first(), rawCount, rawCount * weight)
                 }
-            val unique = group.size
-            val mostCommon = group.maxByOrNull { (_, weightedCount) -> weightedCount }?.let { (stack, count) ->
-                stack.copyWithCount(max(1, count.toInt().coerceAtMost(stack.maxCount)))
+            if (groups.isEmpty()) return@computeIfAbsent ContainerPreviewInfo(null, false)
+
+            val unique = groups.size
+            val mostCommon = groups.maxByOrNull { it.weightedCount }
+            val previewStack = mostCommon?.let {
+                it.stack.copyWithCount(max(1, it.rawCount.coerceAtMost(it.stack.maxCount)))
             }
 
-            ContainerPreviewInfo(mostCommon, unique > 1)
+            // Per-item-type fill bar segments, largest fraction first (matches ItemFinder)
+            val segments = groups
+                .map { FillSegment(getItemAverageColor(it.stack), it.rawCount / it.stack.maxCount.toFloat()) }
+                .sortedByDescending { it.stacksFilled }
+            // A shulker box holds 27 stacks; a bundle holds one stack worth
+            val capacity = if (isBundle(container)) 1f else 27f
+
+            ContainerPreviewInfo(previewStack, unique > 1, mostCommon?.rawCount ?: 0, segments, capacity)
         }
+    }
+
+    /** Computes the average color of an item's particle sprite, used for fill bar segments. */
+    private fun getItemAverageColor(stack: ItemStack): Int {
+        return try {
+            val renderState = ItemRenderState()
+            mc.itemModelManager.clearAndUpdate(renderState, stack, ItemDisplayContext.GUI, mc.world, mc.player, 0)
+            val sprite = renderState.getParticleSprite(Random.create()) ?: return 0xFFFFFFFF.toInt()
+            nativeImageAverageColor(sprite.contents.image)
+        } catch (_: Exception) {
+            0xFFFFFFFF.toInt()
+        }
+    }
+
+    private fun nativeImageAverageColor(image: NativeImage): Int {
+        var rSum = 0.0
+        var gSum = 0.0
+        var bSum = 0.0
+        var aSum = 0.0
+        var pixelCount = 0
+        for (px in 0 until image.width) {
+            for (py in 0 until image.height) {
+                val argb = image.getColorArgb(px, py)
+                val a = ColorHelper.getAlpha(argb)
+                if (a == 0) continue
+                val r = ColorHelper.getRed(argb)
+                val g = ColorHelper.getGreen(argb)
+                val b = ColorHelper.getBlue(argb)
+                rSum += r.toDouble() * r * a
+                gSum += g.toDouble() * g * a
+                bSum += b.toDouble() * b * a
+                aSum += a.toDouble()
+                pixelCount++
+            }
+        }
+        if (aSum <= 0.0 || pixelCount == 0) return 0xFFFFFFFF.toInt()
+        val r = sqrt(rSum / aSum).roundToInt().coerceIn(0, 255)
+        val g = sqrt(gSum / aSum).roundToInt().coerceIn(0, 255)
+        val b = sqrt(bSum / aSum).roundToInt().coerceIn(0, 255)
+        val a = (aSum / pixelCount).roundToInt().coerceIn(0, 255)
+        return ColorHelper.getArgb(a, r, g, b)
     }
 
     @JvmStatic
@@ -392,41 +455,116 @@ object ContainerPreview : Module(
 
 	@JvmStatic
 	fun drawOnItem(drawContext: DrawContext, state: GuiRenderState, entity: LivingEntity?, world: World?, stack: ItemStack, x: Int, y: Int, seed: Int) {
-        if (!contentPreview) return
 		if (!isShulkerBox(stack) && !isBundle(stack)) return
+        if (!contentPreview && !showFillBar && !showHighestItemCount) return
         val preview = getPreviewItemForContainer(stack)
         if (preview.stack == null) return
 
-		// Apply scaling
-		val scale = previewItemScale / 16.0f
-		val itemMatrix = Matrix3x2f(drawContext.matrices)
+        if (contentPreview) {
+            // Apply scaling
+            val scale = previewItemScale / 16.0f
+            val itemMatrix = Matrix3x2f(drawContext.matrices)
 
-		// Required to center the icon correctly, due to how the item gets centered by the renderer
-		val shift = 8 * (1 - scale) // 0 at scale 1.0, 8 at scale 0.0
+            // Required to center the icon correctly, due to how the item gets centered by the renderer
+            val shift = 8 * (1 - scale) // 0 at scale 1.0, 8 at scale 0.0
 
-		val newScreenX = ((x + previewItemXOffset + shift) / scale).toInt()
-		val newScreenY = (((y - previewItemYOffset) + shift) / scale).toInt()
+            val newScreenX = ((x + previewItemXOffset + shift) / scale).toInt()
+            val newScreenY = (((y - previewItemYOffset) + shift) / scale).toInt()
 
-        itemMatrix.scale(scale, scale)
+            itemMatrix.scale(scale, scale)
 
-		val keyedItemRenderState = KeyedItemRenderState()
-		mc.itemModelManager.clearAndUpdate(keyedItemRenderState, preview.stack, ItemDisplayContext.GUI, world, entity, seed)
+            val keyedItemRenderState = KeyedItemRenderState()
+            mc.itemModelManager.clearAndUpdate(keyedItemRenderState, preview.stack, ItemDisplayContext.GUI, world, entity, seed)
 
-		state.addItem(
-			ItemGuiElementRenderState(
-                preview.stack.item.name.toString(), itemMatrix, keyedItemRenderState, newScreenX, newScreenY, drawContext.scissorStack.peekLast()
-			)
-		)
-        if (preview.hasMore) {
-            state.addText(
-                TextGuiElementRenderState(
-                    mc.textRenderer, buildText {
-                        literal("+")
-                    }.asOrderedText(), itemMatrix, newScreenX + 14, newScreenY - 2, -1, Integer.MIN_VALUE, true, false, drawContext.scissorStack.peekLast()
+            state.addItem(
+                ItemGuiElementRenderState(
+                    preview.stack.item.name.toString(), itemMatrix, keyedItemRenderState, newScreenX, newScreenY, drawContext.scissorStack.peekLast()
                 )
             )
+            if (preview.hasMore) {
+                state.addText(
+                    TextGuiElementRenderState(
+                        mc.textRenderer, buildText {
+                            literal("+")
+                        }.asOrderedText(), itemMatrix, newScreenX + 14, newScreenY - 2, -1, Integer.MIN_VALUE, true, false, drawContext.scissorStack.peekLast()
+                    )
+                )
+            }
+        }
+
+        // Fill bar and count use the unscaled matrix so they align to the actual 16x16 slot
+        val overlayMatrix = Matrix3x2f(drawContext.matrices)
+        val scissor = drawContext.scissorStack.peekLast()
+
+        val barPresent = showFillBar && preview.segments.isNotEmpty()
+        if (barPresent) {
+            renderFillBar(state, overlayMatrix, scissor, preview, x, y)
+        }
+        if (showHighestItemCount && preview.highestCount > 1) {
+            renderCountText(state, overlayMatrix, scissor, preview.highestCount, x, y, barPresent)
         }
 	}
+
+    private fun renderFillBar(state: GuiRenderState, pose: Matrix3x2f, scissor: ScreenRect?, info: ContainerPreviewInfo, x: Int, y: Int) {
+        // Sub-pixel geometry ported from the original ItemFinder.renderBar: a thin 0.4px black
+        // frame on all sides around a 1px-tall colored bar
+        val borderSize = 0.4f
+        val lineLength = 16f - borderSize * 2f
+        val xStart = x + borderSize
+        val yStart = y + 15f - borderSize
+        val xEnd = xStart + lineLength
+        val yEnd = yStart + 1f
+
+        // Black outline framing the bar on all sides
+        fillQuad(state, pose, scissor, xStart - borderSize, yStart - borderSize, xEnd + borderSize, yEnd + borderSize, 0xFF000000.toInt())
+        // White "empty" track behind the colored segments
+        fillQuad(state, pose, scissor, xStart, yStart, xEnd, yEnd, 0xFFFFFFFF.toInt())
+
+        // Colored segments proportional to how full the container is
+        var filled = 0f
+        for (segment in info.segments) {
+            val width = (segment.stacksFilled / info.capacity) * lineLength
+            if (width <= 0f) continue
+            fillQuad(state, pose, scissor, xStart + filled, yStart, xStart + filled + width, yEnd, segment.color)
+            filled += width
+        }
+    }
+
+    private fun renderCountText(state: GuiRenderState, pose: Matrix3x2f, scissor: ScreenRect?, count: Int, x: Int, y: Int, aboveBar: Boolean) {
+        val text = count.toString()
+        val textRenderer = mc.textRenderer
+        // Scale the count down so it fits the 16x16 slot (a full-size digit is far too large)
+        val scale = 0.5f
+        val textMatrix = Matrix3x2f(pose).scale(scale, scale)
+        // Sit above the fill bar when it's present, otherwise use the normal bottom-right corner
+        val baseline = if (aboveBar) y + 13 else y + 15
+        // Right-align to the slot's right edge, in the scaled coordinate space
+        val textX = ((x + 16) / scale).toInt() - textRenderer.getWidth(text)
+        val textY = (baseline / scale).toInt() - textRenderer.fontHeight
+        state.addText(
+            TextGuiElementRenderState(
+                textRenderer, buildText { literal(text) }.asOrderedText(), textMatrix, textX, textY, -1, Integer.MIN_VALUE, true, false, scissor
+            )
+        )
+    }
+
+    /**
+     * Draws a colored quad with sub-pixel-accurate float coordinates. [ColoredQuadGuiElementRenderState]
+     * only accepts integer coordinates, so scale the pose matrix down and the coordinates up to
+     * recover fractional-pixel precision (needed for the thin fill bar border).
+     */
+    private fun fillQuad(state: GuiRenderState, pose: Matrix3x2f, scissor: ScreenRect?, x0: Float, y0: Float, x1: Float, y1: Float, color: Int) {
+        val subpixel = 10f
+        val subPose = Matrix3x2f(pose).scale(1f / subpixel)
+        state.addSimpleElement(
+            ColoredQuadGuiElementRenderState(
+                RenderPipelines.GUI, TextureSetup.empty(), subPose,
+                (x0 * subpixel).roundToInt(), (y0 * subpixel).roundToInt(),
+                (x1 * subpixel).roundToInt(), (y1 * subpixel).roundToInt(),
+                color, color, scissor
+            )
+        )
+    }
 
     open class ContainerComponent(val stack: ItemStack) : TooltipData, TooltipComponent {
         override fun drawItems(textRenderer: TextRenderer, x: Int, y: Int, width: Int, height: Int, context: DrawContext) {}
@@ -434,5 +572,15 @@ object ContainerPreview : Module(
         override fun getWidth(textRenderer: TextRenderer): Int = 0
     }
 
-    data class ContainerPreviewInfo(val stack: ItemStack?, val hasMore: Boolean)
+    data class ContainerPreviewInfo(
+        val stack: ItemStack?,
+        val hasMore: Boolean,
+        val highestCount: Int = 0,
+        val segments: List<FillSegment> = emptyList(),
+        val capacity: Float = 27f,
+    )
+
+    data class FillSegment(val color: Int, val stacksFilled: Float)
+
+    private data class ItemGroup(val stack: ItemStack, val rawCount: Int, val weightedCount: Float)
 }
