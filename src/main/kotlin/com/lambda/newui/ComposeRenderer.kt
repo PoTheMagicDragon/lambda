@@ -41,6 +41,7 @@ import org.jetbrains.skia.Surface
 import org.jetbrains.skia.SurfaceColorFormat
 import org.jetbrains.skia.SurfaceOrigin
 import org.lwjgl.opengl.GL11
+import org.lwjgl.opengl.GL12
 import org.lwjgl.opengl.GL13
 import org.lwjgl.opengl.GL14
 import org.lwjgl.opengl.GL15
@@ -92,6 +93,7 @@ object ComposeRenderer {
         if (width <= 0 || height <= 0) return
 
         val glState = saveGLState()
+        resetPixelStore()
 
         try {
             val directContext = directContext
@@ -242,6 +244,14 @@ object ComposeRenderer {
         val depthTestEnabled: Boolean,
         val stencilTestEnabled: Boolean,
         val scissorTestEnabled: Boolean,
+        val unpackSwapBytes: Int,
+        val unpackLsbFirst: Int,
+        val unpackRowLength: Int,
+        val unpackImageHeight: Int,
+        val unpackSkipRows: Int,
+        val unpackSkipPixels: Int,
+        val unpackSkipImages: Int,
+        val unpackAlignment: Int,
     )
 
     private fun saveGLState(): GLState {
@@ -264,7 +274,31 @@ object ComposeRenderer {
             depthTestEnabled = GL11.glIsEnabled(GL11.GL_DEPTH_TEST),
             stencilTestEnabled = GL11.glIsEnabled(GL11.GL_STENCIL_TEST),
             scissorTestEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST),
+            unpackSwapBytes = GL11.glGetInteger(GL11.GL_UNPACK_SWAP_BYTES),
+            unpackLsbFirst = GL11.glGetInteger(GL11.GL_UNPACK_LSB_FIRST),
+            unpackRowLength = GL11.glGetInteger(GL11.GL_UNPACK_ROW_LENGTH),
+            unpackImageHeight = GL11.glGetInteger(GL12.GL_UNPACK_IMAGE_HEIGHT),
+            unpackSkipRows = GL11.glGetInteger(GL11.GL_UNPACK_SKIP_ROWS),
+            unpackSkipPixels = GL11.glGetInteger(GL11.GL_UNPACK_SKIP_PIXELS),
+            unpackSkipImages = GL11.glGetInteger(GL12.GL_UNPACK_SKIP_IMAGES),
+            unpackAlignment = GL11.glGetInteger(GL11.GL_UNPACK_ALIGNMENT),
         )
+    }
+
+    /**
+     * Minecraft leaves the pixel-store unpack state non-zero after its own texture uploads.
+     * Skia would inherit it when uploading its glyph atlas, reading each glyph from the wrong
+     * offset and stride, which renders all text as garbage. Reset to the GL defaults first.
+     */
+    private fun resetPixelStore() {
+        GL11.glPixelStorei(GL11.GL_UNPACK_SWAP_BYTES, 0)
+        GL11.glPixelStorei(GL11.GL_UNPACK_LSB_FIRST, 0)
+        GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, 0)
+        GL11.glPixelStorei(GL12.GL_UNPACK_IMAGE_HEIGHT, 0)
+        GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, 0)
+        GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, 0)
+        GL11.glPixelStorei(GL12.GL_UNPACK_SKIP_IMAGES, 0)
+        GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4)
     }
 
     private fun restoreGLState(state: GLState) {
@@ -282,5 +316,13 @@ object ComposeRenderer {
         if (state.stencilTestEnabled) GL11.glEnable(GL11.GL_STENCIL_TEST) else GL11.glDisable(GL11.GL_STENCIL_TEST)
         if (state.scissorTestEnabled) GL11.glEnable(GL11.GL_SCISSOR_TEST) else GL11.glDisable(GL11.GL_SCISSOR_TEST)
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, state.framebuffer)
+        GL11.glPixelStorei(GL11.GL_UNPACK_SWAP_BYTES, state.unpackSwapBytes)
+        GL11.glPixelStorei(GL11.GL_UNPACK_LSB_FIRST, state.unpackLsbFirst)
+        GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, state.unpackRowLength)
+        GL11.glPixelStorei(GL12.GL_UNPACK_IMAGE_HEIGHT, state.unpackImageHeight)
+        GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, state.unpackSkipRows)
+        GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, state.unpackSkipPixels)
+        GL11.glPixelStorei(GL12.GL_UNPACK_SKIP_IMAGES, state.unpackSkipImages)
+        GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, state.unpackAlignment)
     }
 }

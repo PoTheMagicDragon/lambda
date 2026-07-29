@@ -38,6 +38,29 @@ val sodiumVersion: String by project
 val litematicaVersion: String by project
 val maLiLibVersion: String by project
 val composeVersion: String by project
+val skikoVersion: String by project
+
+// Skiko publishes its natives as one artifact per platform, and none of them are pulled in
+// transitively by Compose. Dev runs only need the host's, so resolve that here.
+// TODO: production jars need every target bundled, or downloaded at runtime.
+val skikoTarget = run {
+    val osName = System.getProperty("os.name").lowercase()
+    val archName = System.getProperty("os.arch").lowercase()
+
+    val os = when {
+        osName.startsWith("windows") -> "windows"
+        osName.startsWith("mac") || osName.contains("darwin") -> "macos"
+        osName.contains("linux") -> "linux"
+        else -> throw GradleException("No skiko natives for host OS '$osName'")
+    }
+    val arch = when (archName) {
+        "x86_64", "amd64" -> "x64"
+        "aarch64", "arm64" -> "arm64"
+        else -> throw GradleException("No skiko natives for host architecture '$archName'")
+    }
+
+    "$os-$arch"
+}
 
 val libs = file("libs")
 val targets = listOf("fabric.mod.json")
@@ -64,6 +87,11 @@ configurations.all {
     resolutionStrategy.eachDependency {
         if (requested.group == "org.lwjgl") {
             useVersion(lwjglVersion)
+        }
+        // The native artifact and the classes Compose pulls in transitively must agree,
+        // or skiko fails to find its library at runtime
+        if (requested.group == "org.jetbrains.skiko") {
+            useVersion(skikoVersion)
         }
     }
 }
@@ -114,6 +142,12 @@ loom {
             property("org.lwjgl.util.DebugStack", "true")
             property("org.lwjgl.util.DebugFunctions", "true")
             property("mixin.debug.export", "true")
+
+            // Skia refuses to initialise on macOS without both of these
+            if (skikoTarget.startsWith("macos")) {
+                property("skiko.renderApi", "OPENGL")
+                property("skiko.macos.opengl.enabled", "true")
+            }
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
@@ -207,7 +241,7 @@ dependencies {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
     }
-    shadowLib("org.jetbrains.skiko:skiko-awt-runtime-windows-x64:0.9.4")
+    shadowLib("org.jetbrains.skiko:skiko-awt-runtime-$skikoTarget:$skikoVersion")
 
 	// DevLogin
 	modRuntimeOnly("com.ptsmods:devlogin:3.5")
