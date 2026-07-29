@@ -46,6 +46,8 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 
 plugins {
     kotlin("jvm") version "2.3.0"
+    kotlin("plugin.compose") version "2.3.0" // M0 spike: Compose compiler (ships with Kotlin)
+    id("org.jetbrains.compose") version "1.11.1" // M0 spike: Compose Multiplatform deps helper
     id("org.jetbrains.dokka") version "2.1.0"
     id("fabric-loom") version "1.16-SNAPSHOT"
     id("com.gradleup.shadow") version "9.3.0"
@@ -72,6 +74,8 @@ repositories {
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://api.modrinth.com/maven")
+    google() // M0 spike: Compose transitive androidx artifacts
+    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev") // M0 spike: Compose dev
     mavenCentral()
 
     // Allow the use of local libraries
@@ -102,6 +106,12 @@ loom {
     runs {
         all {
             property("lambda.dev", "youtu.be/RYnFIRc0k6E")
+
+            // M0 spike: force Skia (skiko) onto MC's OpenGL context instead of Metal on macOS,
+            // so Compose can render into MC's GL framebuffer. macOS additionally gates GL (it's
+            // deprecated by Apple) behind a second opt-in flag.
+            property("skiko.renderApi", "OPENGL")
+            property("skiko.macos.opengl.enabled", "true")
 
             property("org.lwjgl.util.Debug", "true")
             property("org.lwjgl.util.DebugLoader", "true")
@@ -189,6 +199,14 @@ dependencies {
 
 	// DevLogin
 	modRuntimeOnly("com.ptsmods:devlogin:3.5")
+
+    // M0 spike: Jetpack Compose (Compose Multiplatform desktop).
+    // Plain `implementation` = dev classpath only. NOT bundled via jar-in-jar yet;
+    // distribution packaging is a later-milestone concern.
+    implementation(compose.runtime)
+    implementation(compose.foundation)
+    implementation(compose.material3)
+    implementation(compose.desktop.currentOs) // pulls ui + skiko-awt native for the build OS
 
     // Test implementations
     testImplementation(kotlin("test"))

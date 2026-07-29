@@ -28,6 +28,7 @@ import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.DearImGui
 import com.lambda.gui.LambdaScreen
+import com.lambda.gui.compose.ComposeHost
 import com.lambda.gui.MenuBar
 import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.OverlayBackgroundScreen
@@ -79,6 +80,15 @@ object ClickGuiLayout : Loadable, Config(
 		.onPressUnsafe {
 			if (DearImGui.io.wantTextInput) return@onPressUnsafe
 			if (!open && !canOpenOver(mc.currentScreen)) return@onPressUnsafe
+			if (!open) ComposeHost.enabled = false // Y always opens the ImGui GUI
+			toggle()
+		}
+
+	// M0 spike: open the same GUI rendered by Jetpack Compose instead of Dear ImGui.
+	val composeSpikeKeybind by setting("ComposeSpike", KeyCode.J, screenCheck = false)
+		.onPressUnsafe {
+			if (!open && !canOpenOver(mc.currentScreen)) return@onPressUnsafe
+			ComposeHost.enabled = !open // enabling as we open, disabling as we close
 			toggle()
 		}
 

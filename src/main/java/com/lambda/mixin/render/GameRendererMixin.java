@@ -91,7 +91,12 @@ public class GameRendererMixin {
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", shift = At.Shift.AFTER))
     private void onGuiRenderComplete(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
-        DearImGui.INSTANCE.render();
+        // M0 spike: render Compose instead of Dear ImGui when the spike toggle is on.
+        if (com.lambda.gui.compose.ComposeHost.INSTANCE.getEnabled()) {
+            com.lambda.gui.compose.ComposeHost.INSTANCE.render();
+        } else {
+            DearImGui.INSTANCE.render();
+        }
     }
 
     @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;applyCursorTo(Lnet/minecraft/client/util/Window;)V"))

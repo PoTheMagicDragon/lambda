@@ -18,6 +18,8 @@
 package com.lambda.gui
 
 import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.compose.ComposeHost
+import net.minecraft.client.gui.Click
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
@@ -32,6 +34,37 @@ object LambdaScreen : Screen(Text.of("Lambda")) {
     override fun shouldPause() = false
     override fun removed() = ClickGuiLayout.close()
     override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {}
+
+    // M0 spike: forward input to Compose when it owns the GUI. ImGui uses its own GLFW hooks,
+    // so these overrides only matter while ComposeHost.enabled is true.
+    override fun mouseMoved(mouseX: Double, mouseY: Double) {
+        if (ComposeHost.enabled) ComposeHost.onMouseMove(mouseX, mouseY)
+        super.mouseMoved(mouseX, mouseY)
+    }
+
+    override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
+        if (ComposeHost.enabled) {
+            ComposeHost.onMousePress(click.x(), click.y())
+            return true
+        }
+        return super.mouseClicked(click, doubled)
+    }
+
+    override fun mouseReleased(click: Click): Boolean {
+        if (ComposeHost.enabled) {
+            ComposeHost.onMouseRelease(click.x(), click.y())
+            return true
+        }
+        return super.mouseReleased(click)
+    }
+
+    override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
+        if (ComposeHost.enabled) {
+            ComposeHost.onMouseScroll(mouseX, mouseY, verticalAmount)
+            return true
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
+    }
 
     override fun renderBackground(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
         if (parentScreen == null) {
