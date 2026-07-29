@@ -24,7 +24,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,8 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lambda.module.Module
@@ -46,13 +44,7 @@ import com.lambda.newui.theme.LambdaColors
  */
 @Composable
 fun ModuleCard(module: Module) {
-    // Track module enabled state reactively.
-    // We re-read isEnabled each recomposition; Compose will recompose when the value changes
-    // because we wrap it in a mutableStateOf + remember pattern with a key.
     var enabled by remember { mutableStateOf(module.isEnabled) }
-
-    // Sync with actual module state each recomposition
-    enabled = module.isEnabled
 
     val backgroundColor by animateColorAsState(
         targetValue = if (enabled) LambdaColors.ModuleEnabled else LambdaColors.ModuleDisabled,
@@ -61,25 +53,24 @@ fun ModuleCard(module: Module) {
     )
 
     val textColor = if (enabled) LambdaColors.OnSurface else LambdaColors.OnSurfaceVariant
-    val shape = RoundedCornerShape(4.dp)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .clip(shape)
             .background(backgroundColor)
             .clickable {
                 module.toggle()
                 enabled = module.isEnabled
             }
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 5.dp, vertical = 3.dp)
     ) {
         Text(
             text = module.name,
-            fontSize = 12.sp,
-            fontWeight = if (enabled) FontWeight.SemiBold else FontWeight.Normal,
-            color = textColor
+            fontSize = 9.sp,
+            lineHeight = 9.sp,
+            color = textColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

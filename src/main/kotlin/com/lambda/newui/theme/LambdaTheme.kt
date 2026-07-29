@@ -27,20 +27,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/**
- * Lambda color palette — derived from the existing ImGui ClickGuiLayout colors.
- */
 object LambdaColors {
-    val Primary = Color(130, 200, 255)         // Bright blue accent
-    val Secondary = Color(225, 130, 225)       // Pink/magenta accent
-    val Surface = Color(35, 0, 14)             // Dark background
-    val SurfaceVariant = Color(55, 5, 25)      // Slightly lighter dark
-    val OnSurface = Color(255, 255, 255)       // White text
-    val OnSurfaceVariant = Color(180, 180, 180) // Dimmed text
-    val ModuleEnabled = Color(130, 200, 255, 180)  // Blue glow when module is on
-    val ModuleDisabled = Color(80, 10, 40, 150)    // Muted dark when module is off
-    val Border = Color(130, 12, 60)            // Pink border
-    val HeaderBg = Color(125, 0, 50)           // Category header background
+    val Primary = Color(100, 180, 255)          // Bright blue accent
+    val Secondary = Color(225, 130, 225)        // Pink/magenta accent
+    val Surface = Color(18, 0, 8)               // Deep dark background
+    val SurfaceVariant = Color(35, 3, 18)       // Slightly lighter dark
+    val OnSurface = Color(240, 240, 245)        // Near-white text
+    val OnSurfaceVariant = Color(140, 140, 150) // Dimmed text
+    val ModuleEnabled = Color(88, 0, 35, 255)     // Solid blue when module is on
+    val ModuleDisabled = Color(40, 5, 22, 200)  // Muted dark when module is off
+    val Border = Color(140, 15, 65)             // Pink border — higher contrast
+    val HeaderBg = Color(130, 5, 55)            // Category header background
 }
 
 private val LambdaColorScheme = darkColorScheme(

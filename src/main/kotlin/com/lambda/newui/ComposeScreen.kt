@@ -83,7 +83,7 @@ object ComposeScreen : Screen(buildText { literal("Lambda Screen") }) {
     }
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
-        ComposeRenderer.sendMouseScroll(mouseX, mouseY, horizontalAmount, verticalAmount)
+        ComposeRenderer.sendMouseScroll(mouseX, mouseY, horizontalAmount, -verticalAmount)
         return true
     }
 }

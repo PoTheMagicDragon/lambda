@@ -17,13 +17,13 @@
 
 package com.lambda.newui
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lambda.module.tag.ModuleTag
@@ -33,21 +33,33 @@ import com.lambda.newui.theme.LambdaTheme
 /**
  * Top-level composable for the Lambda click GUI.
  *
- * Renders a horizontally scrollable row of [CategoryPanel]s — one per [ModuleTag] in the
+ * Renders a row of [CategoryPanel]s — one per [ModuleTag] in the
  * default tag set. Each panel lists its modules as clickable toggle cards.
+ * Panels are individually draggable by their header.
+ * Most recently interacted panel renders on top of others.
  */
 @Composable
 fun ClickGuiContent() {
     LambdaTheme {
+        // Track z-order: last element = highest z-index (renders on top)
+        val zOrder = remember { mutableStateListOf(*ModuleTag.shownTags.toTypedArray()) }
+
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp)
-                .horizontalScroll(rememberScrollState())
+                .padding(6.dp)
         ) {
             ModuleTag.shownTags.forEach { tag ->
-                CategoryPanel(tag)
+                val zIndex = zOrder.indexOf(tag).toFloat()
+                CategoryPanel(
+                    tag = tag,
+                    zIndex = zIndex,
+                    onFocus = {
+                        zOrder.remove(tag)
+                        zOrder.add(tag) // Move to end = highest z-index
+                    }
+                )
             }
         }
     }

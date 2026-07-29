@@ -22,10 +22,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -39,65 +41,88 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newui.theme.LambdaColors
+import kotlin.math.roundToInt
+
+private const val GRID_SIZE_DP = 4f
+
+private fun snapToGrid(value: Float, gridSize: Float): Float {
+    return (value / gridSize).roundToInt() * gridSize
+}
 
 @Composable
-fun CategoryPanel(tag: ModuleTag) {
+fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) {
     val modules = ModuleRegistry.modules.filter { it.tag == tag && it.showInClickGui.value }
     if (modules.isEmpty()) return
 
-    // 1. State to track if the dropdown is expanded
-    var expanded by remember { mutableStateOf(true) } // Set to false if you want collapsed by default
+    var expanded by remember { mutableStateOf(true) }
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
 
-    val shape = RoundedCornerShape(3.dp)
+    val shape = RoundedCornerShape(1.dp)
 
     Column(
         modifier = Modifier
-            .width(180.dp)
-            .clip(shape)
-            .background(LambdaColors.Surface.copy(alpha = 0.92f))
-            .border(1.dp, LambdaColors.Border.copy(alpha = 0.6f), shape)
+            .zIndex(zIndex)
+            .offset {
+                IntOffset(
+                    snapToGrid(dragOffset.x, GRID_SIZE_DP * density).roundToInt(),
+                    snapToGrid(dragOffset.y, GRID_SIZE_DP * density).roundToInt()
+                )
+            }
+            .width(100.dp)
+            .background(LambdaColors.Surface, shape)
+            .border(1.dp, LambdaColors.Border, shape)
     ) {
-        // 2. Clickable Header (Row)
         Row(
             modifier = Modifier
-                .background(LambdaColors.HeaderBg.copy(alpha = 0.9f))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .background(LambdaColors.HeaderBg)
                 .fillMaxWidth()
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = { onFocus() },
+                        onDrag = { _, dragAmount ->
+                            dragOffset += dragAmount
+                        }
+                    )
+                }
                 .pointerInput(Unit) {
                     awaitPointerEventScope {
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Main)
                             if (event.type == PointerEventType.Press) {
+                                onFocus()
                                 if (event.buttons.isSecondaryPressed) {
                                     expanded = !expanded
                                 }
                             }
                         }
                     }
-                },
+                }
+                .padding(horizontal = 5.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = tag.name,
-                fontSize = 14.sp,
+                fontSize = 10.sp,
+                lineHeight = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = LambdaColors.OnSurface,
             )
         }
 
-        // 5. Content (Modules) - only visible when expanded
         AnimatedVisibility(
             visible = expanded,
             enter = expandVertically(),
@@ -107,7 +132,6 @@ fun CategoryPanel(tag: ModuleTag) {
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(4.dp)
             ) {
                 modules.forEach { module ->
                     ModuleCard(module)

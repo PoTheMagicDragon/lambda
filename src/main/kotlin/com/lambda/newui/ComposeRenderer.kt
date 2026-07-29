@@ -68,7 +68,7 @@ object ComposeRenderer {
 
         scene = CanvasLayersComposeScene(
             coroutineContext = Dispatchers.Default,
-            density = Density(1f),
+            density = Density(3f),
             invalidate = {}
         ).apply {
             setContent {
