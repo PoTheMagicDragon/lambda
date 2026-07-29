@@ -26,7 +26,6 @@ import com.lambda.config.settings.complex.KeybindSetting.Companion.onPressUnsafe
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.gui.DearImGui
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.MenuBar
 import com.lambda.gui.MenuBar.buildMenuBar
@@ -49,6 +48,7 @@ import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen
 import com.lambda.module.tag.ModuleTag
 import com.lambda.module.tag.ModuleTag.Companion.shownTags
+import com.lambda.newui.ComposeClickGui
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 import com.lambda.util.Describable
@@ -75,11 +75,11 @@ object ClickGuiLayout : Loadable, Config(
 	var developerMode = false
 	// onPressUnsafe (not onPress) so the GUI can also be toggled from menu screens
 	// (title, multiplayer, world-select) where there is no SafeContext, not just in-game.
+	// Temporarily delegates to ComposeClickGui instead of the ImGui toggle.
 	val keybind by setting("Keybind", KeyCode.Y, screenCheck = false)
 		.onPressUnsafe {
-			if (DearImGui.io.wantTextInput) return@onPressUnsafe
-			if (!open && !canOpenOver(mc.currentScreen)) return@onPressUnsafe
-			toggle()
+			if (!ComposeClickGui.open && !canOpenOver(mc.currentScreen)) return@onPressUnsafe
+			ComposeClickGui.toggle()
 		}
 
 	/**

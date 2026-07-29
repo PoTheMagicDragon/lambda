@@ -37,6 +37,7 @@ val lwjglVersion: String by project
 val sodiumVersion: String by project
 val litematicaVersion: String by project
 val maLiLibVersion: String by project
+val composeVersion: String by project
 
 val libs = file("libs")
 val targets = listOf("fabric.mod.json")
@@ -46,6 +47,7 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 
 plugins {
     kotlin("jvm") version "2.3.0"
+    kotlin("plugin.compose") version "2.3.0"
     id("org.jetbrains.dokka") version "2.1.0"
     id("fabric-loom") version "1.16-SNAPSHOT"
     id("com.gradleup.shadow") version "9.3.0"
@@ -72,6 +74,8 @@ repositories {
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://api.modrinth.com/maven")
+    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev") // Compose Multiplatform
+    google() // AndroidX dependencies (transitive from Compose)
     mavenCentral()
 
     // Allow the use of local libraries
@@ -186,6 +190,25 @@ dependencies {
     modCompileOnly("maven.modrinth:sodium:$sodiumVersion")
     modCompileOnly("maven.modrinth:malilib:$maLiLibVersion")
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
+
+    // Compose Multiplatform (alternative GUI)
+    shadowLib("org.jetbrains.compose.runtime:runtime-desktop:$composeVersion") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+    }
+    shadowLib("org.jetbrains.compose.ui:ui-desktop:$composeVersion") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+    }
+    shadowLib("org.jetbrains.compose.foundation:foundation-desktop:$composeVersion") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+    }
+    shadowLib("org.jetbrains.compose.material3:material3-desktop:$composeVersion") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+    }
+    shadowLib("org.jetbrains.skiko:skiko-awt-runtime-windows-x64:0.9.4") // Skiko native library required by Compose scene
 
 	// DevLogin
 	modRuntimeOnly("com.ptsmods:devlogin:3.5")
