@@ -191,7 +191,6 @@ dependencies {
     modCompileOnly("maven.modrinth:malilib:$maLiLibVersion")
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
 
-    // Compose Multiplatform (alternative GUI)
     shadowLib("org.jetbrains.compose.runtime:runtime-desktop:$composeVersion") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
@@ -208,7 +207,7 @@ dependencies {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
     }
-    shadowLib("org.jetbrains.skiko:skiko-awt-runtime-windows-x64:0.9.4") // Skiko native library required by Compose scene
+    shadowLib("org.jetbrains.skiko:skiko-awt-runtime-windows-x64:0.9.4")
 
 	// DevLogin
 	modRuntimeOnly("com.ptsmods:devlogin:3.5")

@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.BackendRenderTarget
 import org.jetbrains.skia.ColorSpace
@@ -45,17 +47,10 @@ import org.lwjgl.opengl.GL15
 import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30
 
-/**
- * Bridges Jetpack Compose Multiplatform rendering into Minecraft's OpenGL pipeline.
- *
- * Uses Skiko's OpenGL backend to render Compose UI directly into the current framebuffer.
- * All OpenGL state is saved before rendering and restored afterwards to prevent
- * interference with Minecraft's rendering.
- */
 @OptIn(InternalComposeUiApi::class)
 object ComposeRenderer {
     private var directContext: DirectContext? = null
-    private var renderTarget: BackendRenderTarget? = null
+    private var previousRenderTarget: BackendRenderTarget? = null
     private var surface: Surface? = null
     private var scene: ComposeScene? = null
 
@@ -74,11 +69,15 @@ object ComposeRenderer {
         scene = CanvasLayersComposeScene(
             coroutineContext = Dispatchers.Default,
             density = Density(1f),
-            invalidate = {} // We re-render every frame when the GUI is open
+            invalidate = {}
         ).apply {
             setContent {
                 ClickGuiContent()
             }
+        }
+
+        listen<ClientEvent.Shutdown> {
+            destroy()
         }
 
         initialized = true
@@ -92,35 +91,35 @@ object ComposeRenderer {
         val height = mc.window.framebufferHeight
         if (width <= 0 || height <= 0) return
 
-        // Save all OpenGL state
         val glState = saveGLState()
 
         try {
-            // Create or recreate the Skia GPU context
-            if (directContext == null) {
-                directContext = DirectContext.makeGL()
-            }
+            val directContext = directContext
+                ?: DirectContext.makeGL().also { context ->
+                    directContext = context
+                }
 
-            // Reset Skia's GL context tracking — Minecraft modifies GL state between frames
-            directContext?.resetGLAll()
+            directContext.resetGLAll()
 
-            // Recreate render target if size changed
             if (currentWidth != width || currentHeight != height) {
-                renderTarget?.close()
+                previousRenderTarget?.close()
                 surface?.close()
 
                 val fbId = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING)
-                renderTarget = BackendRenderTarget.makeGL(
-                    width, height,
-                    /* sampleCount */ 0,
-                    /* stencilBits */ 8,
-                    fbId,
-                    FramebufferFormat.GR_GL_RGBA8
-                )
+                val currentTarget =
+                    BackendRenderTarget.makeGL(
+                        width, height,
+                        sampleCnt = 0,
+                        stencilBits = 8,
+                        fbId,
+                        FramebufferFormat.GR_GL_RGBA8
+                    ).also { target ->
+                        previousRenderTarget = target
+                    }
 
                 surface = Surface.makeFromBackendRenderTarget(
-                    directContext!!,
-                    renderTarget!!,
+                    directContext,
+                    currentTarget,
                     SurfaceOrigin.BOTTOM_LEFT,
                     SurfaceColorFormat.RGBA_8888,
                     ColorSpace.sRGB
@@ -129,27 +128,21 @@ object ComposeRenderer {
                 currentWidth = width
                 currentHeight = height
 
-                // Update scene constraints to match framebuffer size
                 scene?.size = IntSize(width, height)
             }
 
             val canvas = surface?.canvas ?: return
 
-            // Render Compose scene to the Skia canvas → writes directly to the bound framebuffer via OpenGL
             scene?.render(canvas.asComposeCanvas(), System.nanoTime())
 
-            // Flush Skia's rendering commands through OpenGL
             surface?.flushAndSubmit()
-            directContext?.flush()
+            directContext.flush()
         } catch (e: Exception) {
             LOG.error("Error rendering Compose UI", e)
         } finally {
-            // Restore all OpenGL state
             restoreGLState(glState)
         }
     }
-
-    // --- Input forwarding ---
 
     fun sendMouseMove(x: Double, y: Double) {
         val scale = mc.window.scaleFactor.toFloat()
@@ -221,16 +214,14 @@ object ComposeRenderer {
         scene = null
         surface?.close()
         surface = null
-        renderTarget?.close()
-        renderTarget = null
+        previousRenderTarget?.close()
+        previousRenderTarget = null
         directContext?.close()
         directContext = null
         currentWidth = 0
         currentHeight = 0
         initialized = false
     }
-
-    // --- OpenGL state save/restore ---
 
     private data class GLState(
         val activeTexture: Int,
@@ -240,8 +231,6 @@ object ComposeRenderer {
         val elementArrayBuffer: Int,
         val vertexArray: Int,
         val framebuffer: Int,
-        val viewport: IntArray,
-        val scissorBox: IntArray,
         val blendSrcRgb: Int,
         val blendDstRgb: Int,
         val blendSrcAlpha: Int,
@@ -264,8 +253,6 @@ object ComposeRenderer {
             elementArrayBuffer = GL11.glGetInteger(GL15.GL_ELEMENT_ARRAY_BUFFER_BINDING),
             vertexArray = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING),
             framebuffer = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING),
-            viewport = IntArray(4).also { GL11.glGetIntegerv(GL11.GL_VIEWPORT, it) },
-            scissorBox = IntArray(4).also { GL11.glGetIntegerv(GL11.GL_SCISSOR_BOX, it) },
             blendSrcRgb = GL11.glGetInteger(GL14.GL_BLEND_SRC_RGB),
             blendDstRgb = GL11.glGetInteger(GL14.GL_BLEND_DST_RGB),
             blendSrcAlpha = GL11.glGetInteger(GL14.GL_BLEND_SRC_ALPHA),
@@ -294,8 +281,6 @@ object ComposeRenderer {
         if (state.depthTestEnabled) GL11.glEnable(GL11.GL_DEPTH_TEST) else GL11.glDisable(GL11.GL_DEPTH_TEST)
         if (state.stencilTestEnabled) GL11.glEnable(GL11.GL_STENCIL_TEST) else GL11.glDisable(GL11.GL_STENCIL_TEST)
         if (state.scissorTestEnabled) GL11.glEnable(GL11.GL_SCISSOR_TEST) else GL11.glDisable(GL11.GL_SCISSOR_TEST)
-        GL11.glViewport(state.viewport[0], state.viewport[1], state.viewport[2], state.viewport[3])
-        GL11.glScissor(state.scissorBox[0], state.scissorBox[1], state.scissorBox[2], state.scissorBox[3])
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, state.framebuffer)
     }
 }

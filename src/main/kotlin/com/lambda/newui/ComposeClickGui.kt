@@ -22,19 +22,10 @@ import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.OverlayBackgroundScreen
-import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.modules.client.Client
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 
-/**
- * Orchestrator for the Compose-based click GUI.
- *
- * Manages the open/close lifecycle, hooks into the render pipeline via [GuiEvent.EndImguiFrame],
- * and delegates rendering to [ComposeRenderer].
- *
- * Implements [Loadable] so it is auto-discovered by [com.lambda.core.Loader].
- */
 object ComposeClickGui : Loadable {
     var open = false
         private set
@@ -44,30 +35,22 @@ object ComposeClickGui : Loadable {
     }
 
     init {
-        // Render the Compose GUI after ImGui finishes (MC framebuffer is bound at this point).
         listenUnsafe<GuiEvent.EndImguiFrame> {
             if (!open) return@listenUnsafe
             ComposeRenderer.render()
         }
     }
 
-    /**
-     * Toggle the Compose click GUI open/closed.
-     * Uses the same screen-check logic as [ClickGuiLayout.toggle].
-     */
     fun toggle() {
-        if (open) {
-            // ComposeScreen.close() restores the background screen and triggers
-            // removed() -> close(), which flips `open` off and plays the sound.
-            ComposeScreen.close()
-        } else {
+        if (open) ComposeScreen.close()
+        else {
             val current = mc.currentScreen
             if (current is ComposeScreen) return
             if (Client.clientSounds) LambdaSound.ModuleOn.play()
 
             ComposeRenderer.initialize()
 
-            ComposeScreen.parentScreen = if (current is ComposeScreen) null else current
+            ComposeScreen.parentScreen = current
             (current as? OverlayBackgroundScreen)?.onOverlaidByGui()
             mc.setScreen(ComposeScreen)
             open = true

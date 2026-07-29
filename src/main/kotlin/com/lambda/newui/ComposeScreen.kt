@@ -31,10 +31,7 @@ object ComposeScreen : Screen(buildText { literal("Lambda Screen") }) {
 
     override fun removed() = ComposeClickGui.close()
 
-    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {
-        // Compose rendering is done via the GuiEvent.EndImguiFrame hook in ComposeClickGui,
-        // not through MC's screen render cycle.
-    }
+    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {}
 
     override fun renderBackground(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
         if (parentScreen == null) {
