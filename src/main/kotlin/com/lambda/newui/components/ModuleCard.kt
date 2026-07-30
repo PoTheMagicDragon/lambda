@@ -18,7 +18,7 @@
 package com.lambda.newui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -54,7 +54,7 @@ fun ModuleCard(module: Module) {
 
     val backgroundColor by animateColorAsState(
         targetValue = if (enabled) colors.secondaryContainer else colors.surfaceContainer,
-        animationSpec = tween(durationMillis = 150),
+        animationSpec = spring(),
         label = "moduleCardBg"
     )
 
@@ -65,7 +65,7 @@ fun ModuleCard(module: Module) {
             .fillMaxWidth()
             .background(backgroundColor)
             .clickable { module.toggle() }
-            .padding(horizontal = 5.dp, vertical = 3.dp)
+            .padding(horizontal = 5.dp, vertical = 2.dp)
     ) {
         Text(
             text = module.name,
