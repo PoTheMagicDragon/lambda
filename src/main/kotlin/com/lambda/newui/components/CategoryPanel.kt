@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,7 +56,6 @@ import androidx.compose.ui.zIndex
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newui.state.LambdaState.observe
-import com.lambda.newui.theme.LambdaColors
 import kotlin.math.roundToInt
 
 private const val GRID_SIZE_DP = 4f
@@ -76,6 +76,7 @@ fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) 
     var expanded by remember { mutableStateOf(true) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
 
+    val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(1.dp)
 
     Column(
@@ -88,12 +89,12 @@ fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) 
                 )
             }
             .width(100.dp)
-            .background(LambdaColors.Surface, shape)
-            .border(1.dp, LambdaColors.Border, shape)
+            .background(colors.surface, shape)
+            .border(1.dp, colors.outline, shape)
     ) {
         Row(
             modifier = Modifier
-                .background(LambdaColors.HeaderBg)
+                .background(colors.primaryContainer)
                 .fillMaxWidth()
                 .pointerInput(Unit) {
                     detectDragGestures(
@@ -125,7 +126,7 @@ fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) 
                 fontSize = 10.sp,
                 lineHeight = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = LambdaColors.OnSurface,
+                color = colors.onPrimaryContainer,
             )
         }
 

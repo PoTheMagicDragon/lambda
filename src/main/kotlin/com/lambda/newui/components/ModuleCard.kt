@@ -24,6 +24,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,12 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lambda.module.Module
 import com.lambda.newui.state.LambdaState.observeEnabled
-import com.lambda.newui.theme.LambdaColors
 
 /**
  * A clickable card representing a single [Module].
  * Displays the module name, toggles on click, and animates the background color
- * between enabled (blue highlight) and disabled (dark muted) states.
+ * between its enabled and disabled states.
  *
  * The enabled flag is observed from the module itself, so the card stays correct when
  * the module is toggled by a keybind, a command, or a config load rather than a click.
@@ -47,13 +47,15 @@ import com.lambda.newui.theme.LambdaColors
 fun ModuleCard(module: Module) {
     val enabled by module.observeEnabled()
 
+    val colors = MaterialTheme.colorScheme
+
     val backgroundColor by animateColorAsState(
-        targetValue = if (enabled) LambdaColors.ModuleEnabled else LambdaColors.ModuleDisabled,
+        targetValue = if (enabled) colors.secondaryContainer else colors.surfaceContainer,
         animationSpec = tween(durationMillis = 150),
         label = "moduleCardBg"
     )
 
-    val textColor = if (enabled) LambdaColors.OnSurface else LambdaColors.OnSurfaceVariant
+    val textColor = if (enabled) colors.onSecondaryContainer else colors.onSurfaceVariant
 
     Box(
         modifier = Modifier

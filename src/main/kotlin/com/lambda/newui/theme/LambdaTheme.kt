@@ -34,12 +34,24 @@ object LambdaColors {
     val SurfaceVariant = Color(35, 3, 18)       // Slightly lighter dark
     val OnSurface = Color(240, 240, 245)        // Near-white text
     val OnSurfaceVariant = Color(140, 140, 150) // Dimmed text
-    val ModuleEnabled = Color(88, 0, 35, 255)     // Solid blue when module is on
+    val ModuleEnabled = Color(88, 0, 35, 255)   // Lifted crimson when module is on
     val ModuleDisabled = Color(40, 5, 22, 200)  // Muted dark when module is off
     val Border = Color(140, 15, 65)             // Pink border — higher contrast
     val HeaderBg = Color(130, 5, 55)            // Category header background
 }
 
+/**
+ * [LambdaColors] projected onto Material3's semantic slots, so components can read the
+ * theme rather than the constants directly.
+ *
+ * Lambda's palette is not organised the way M3's is — a category header and a module card
+ * are not M3 concepts — so a few slots are chosen for the role they play rather than their
+ * name: `primaryContainer` carries the header strip (M3's prominent-container slot),
+ * `secondaryContainer` the enabled module card (the slot M3's own components use for a
+ * selected row), and `surfaceContainer` the disabled one (a resting container drawn on top
+ * of `surface`). Every value is unchanged from the constants, so this is purely a
+ * re-addressing of the existing palette.
+ */
 private val LambdaColorScheme = darkColorScheme(
     primary = LambdaColors.Primary,
     secondary = LambdaColors.Secondary,
@@ -49,6 +61,10 @@ private val LambdaColorScheme = darkColorScheme(
     onSurfaceVariant = LambdaColors.OnSurfaceVariant,
     outline = LambdaColors.Border,
     primaryContainer = LambdaColors.HeaderBg,
+    onPrimaryContainer = LambdaColors.OnSurface,
+    secondaryContainer = LambdaColors.ModuleEnabled,
+    onSecondaryContainer = LambdaColors.OnSurface,
+    surfaceContainer = LambdaColors.ModuleDisabled,
 )
 
 private val LambdaTypography = Typography(
