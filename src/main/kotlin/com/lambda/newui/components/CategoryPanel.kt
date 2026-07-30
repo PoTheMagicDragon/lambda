@@ -129,7 +129,7 @@ fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) 
                 lineHeight = 10.sp,
                 fontWeight = FontWeight.Bold,
 	            color = colors.onPrimaryContainer,
-                style = TextStyle(shadow = Shadow(offset = Offset(2f, 2f)))
+                style = TextStyle(shadow = Shadow(color = colors.scrim, offset = Offset(2f, 2f)))
             )
         }
 

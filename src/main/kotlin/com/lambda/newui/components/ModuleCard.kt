@@ -74,7 +74,7 @@ fun ModuleCard(module: Module) {
             color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = TextStyle(shadow = Shadow(offset = Offset(2f, 2f)))
+            style = TextStyle(shadow = Shadow(color = colors.scrim, offset = Offset(2f, 2f)))
         )
     }
 }

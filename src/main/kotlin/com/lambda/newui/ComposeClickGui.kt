@@ -23,6 +23,7 @@ import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.OverlayBackgroundScreen
 import com.lambda.module.modules.client.Client
+import com.lambda.newui.theme.SystemThemeTracker
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 
@@ -49,6 +50,9 @@ object ComposeClickGui : Loadable {
             if (Client.clientSounds) LambdaSound.ModuleOn.play()
 
             ComposeRenderer.initialize()
+            // The GUI can have been closed across an OS theme change, and polling only runs
+            // while it is open, so re-read before the first frame rather than after it.
+            SystemThemeTracker.refresh()
 
             ComposeScreen.parentScreen = current
             (current as? OverlayBackgroundScreen)?.onOverlaidByGui()
