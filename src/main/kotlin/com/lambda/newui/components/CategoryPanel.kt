@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.state.LambdaState.observe
 import com.lambda.newui.theme.LambdaColors
 import kotlin.math.roundToInt
 
@@ -64,7 +66,11 @@ private fun snapToGrid(value: Float, gridSize: Float): Float {
 
 @Composable
 fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) {
-    val modules = ModuleRegistry.modules.filter { it.tag == tag && it.showInClickGui.value }
+    // ModuleRegistry.modules is fixed after load, so the tag filter can be cached.
+    // "Show In ClickGui" is a live setting, so it has to be observed on every module —
+    // reading it here re-runs this filter whenever any of them changes.
+    val tagged = remember(tag) { ModuleRegistry.modules.filter { it.tag == tag } }
+    val modules = tagged.filter { it.showInClickGui.observe().value }
     if (modules.isEmpty()) return
 
     var expanded by remember { mutableStateOf(true) }
@@ -134,7 +140,12 @@ fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) 
                     .verticalScroll(rememberScrollState())
             ) {
                 modules.forEach { module ->
-                    ModuleCard(module)
+                    // Keyed because the list is now dynamic — `remember` is positional,
+                    // so without a key a module appearing or disappearing would shift
+                    // every card below it onto the wrong retained state.
+                    key(module.name) {
+                        ModuleCard(module)
+                    }
                 }
             }
         }

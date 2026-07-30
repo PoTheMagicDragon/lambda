@@ -27,24 +27,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lambda.module.Module
+import com.lambda.newui.state.LambdaState.observeEnabled
 import com.lambda.newui.theme.LambdaColors
 
 /**
  * A clickable card representing a single [Module].
  * Displays the module name, toggles on click, and animates the background color
  * between enabled (blue highlight) and disabled (dark muted) states.
+ *
+ * The enabled flag is observed from the module itself, so the card stays correct when
+ * the module is toggled by a keybind, a command, or a config load rather than a click.
  */
 @Composable
 fun ModuleCard(module: Module) {
-    var enabled by remember { mutableStateOf(module.isEnabled) }
+    val enabled by module.observeEnabled()
 
     val backgroundColor by animateColorAsState(
         targetValue = if (enabled) LambdaColors.ModuleEnabled else LambdaColors.ModuleDisabled,
@@ -58,10 +59,7 @@ fun ModuleCard(module: Module) {
         modifier = Modifier
             .fillMaxWidth()
             .background(backgroundColor)
-            .clickable {
-                module.toggle()
-                enabled = module.isEnabled
-            }
+            .clickable { module.toggle() }
             .padding(horizontal = 5.dp, vertical = 3.dp)
     ) {
         Text(

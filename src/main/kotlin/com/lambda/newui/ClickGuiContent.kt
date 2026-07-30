@@ -22,27 +22,44 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newui.components.CategoryPanel
+import com.lambda.newui.state.LambdaState.observeShownTags
 import com.lambda.newui.theme.LambdaTheme
 
 /**
  * Top-level composable for the Lambda click GUI.
  *
- * Renders a row of [CategoryPanel]s — one per [ModuleTag] in the
- * default tag set. Each panel lists its modules as clickable toggle cards.
- * Panels are individually draggable by their header.
+ * Renders a row of [CategoryPanel]s — one per shown [ModuleTag]. Each panel lists its
+ * modules as clickable toggle cards. Panels are individually draggable by their header.
  * Most recently interacted panel renders on top of others.
+ *
+ * The shown-tag set is observed, so toggling a category from the ImGui menu bar adds or
+ * removes its panel live.
  */
 @Composable
 fun ClickGuiContent() {
     LambdaTheme {
-        // Track z-order: last element = highest z-index (renders on top)
-        val zOrder = remember { mutableStateListOf(*ModuleTag.shownTags.toTypedArray()) }
+        val shownTags by observeShownTags()
+
+        // Focus history, most recently focused last. Derived from rather than mirroring
+        // the shown set, so it tolerates tags appearing and disappearing: stale entries
+        // are simply never looked up, and a tag that has never been focused is absent.
+        val focusOrder = remember { mutableStateListOf<ModuleTag>() }
+
+        // Never-focused tags yield indexOf == -1 and so sort to the front, i.e. render
+        // beneath focused ones. sortedBy is stable, so they keep shownTags order among
+        // themselves instead of collapsing onto a shared z-index.
+        val zIndexOf = shownTags
+            .sortedBy { focusOrder.indexOf(it) }
+            .withIndex()
+            .associate { (index, tag) -> tag to index.toFloat() }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -50,16 +67,21 @@ fun ClickGuiContent() {
                 .fillMaxSize()
                 .padding(6.dp)
         ) {
-            ModuleTag.shownTags.forEach { tag ->
-                val zIndex = zOrder.indexOf(tag).toFloat()
-                CategoryPanel(
-                    tag = tag,
-                    zIndex = zIndex,
-                    onFocus = {
-                        zOrder.remove(tag)
-                        zOrder.add(tag) // Move to end = highest z-index
-                    }
-                )
+            // Layout order stays the shown-tag order so panels don't jump around
+            // horizontally when one is focused; only zIndex reacts to focus.
+            shownTags.forEach { tag ->
+                // Keyed so a tag being shown or hidden doesn't shift the panels after it
+                // onto the wrong remembered drag offset and expanded state.
+                key(tag) {
+                    CategoryPanel(
+                        tag = tag,
+                        zIndex = zIndexOf[tag] ?: 0f,
+                        onFocus = {
+                            focusOrder.remove(tag)
+                            focusOrder.add(tag) // Move to end = highest z-index
+                        }
+                    )
+                }
             }
         }
     }

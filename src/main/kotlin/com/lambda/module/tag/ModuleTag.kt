@@ -49,16 +49,38 @@ data class ModuleTag(override val name: String) : Nameable {
 
         val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, WORLD, NETWORK, CHAT, CLIENT, HUD)
 
-        val shownTags = defaults.toMutableSet()
+        private val mutableShownTags = defaults.toMutableSet()
+        private val shownTagListeners = mutableListOf<(Set<ModuleTag>) -> Unit>()
 
-        fun toggleTag(tag: ModuleTag) {
-            if (shownTags.contains(tag)) {
-                shownTags.remove(tag)
-            } else {
-                shownTags.add(tag)
-            }
+        /**
+         * Read-only view of the tags the ClickGui should display.
+         *
+         * Mutate only through [toggleTag] — direct mutation would skip the
+         * [onShownTagsChanged] notification that retained-state GUIs rely on to
+         * know when to redraw.
+         */
+        val shownTags: Set<ModuleTag> get() = mutableShownTags
+
+        /**
+         * Registers [block] to run whenever [shownTags] changes.
+         *
+         * Listeners are never removed, so only register from a permanent owner
+         * (a [com.lambda.core.Loadable], an object, or a cached-per-key registry).
+         */
+        fun onShownTagsChanged(block: (Set<ModuleTag>) -> Unit) {
+            shownTagListeners.add(block)
         }
 
-        fun isTagShown(tag: ModuleTag) = shownTags.contains(tag)
+        fun toggleTag(tag: ModuleTag) {
+            if (mutableShownTags.contains(tag)) {
+                mutableShownTags.remove(tag)
+            } else {
+                mutableShownTags.add(tag)
+            }
+            val snapshot = mutableShownTags.toSet()
+            shownTagListeners.forEach { it(snapshot) }
+        }
+
+        fun isTagShown(tag: ModuleTag) = mutableShownTags.contains(tag)
     }
 }
