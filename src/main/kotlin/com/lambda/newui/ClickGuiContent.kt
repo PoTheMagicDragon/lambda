@@ -17,21 +17,32 @@
 
 package com.lambda.newui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newui.components.CategoryPanel
 import com.lambda.newui.state.LambdaState.observeShownTags
 import com.lambda.newui.theme.LambdaTheme
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Top-level composable for the Lambda click GUI.
@@ -45,44 +56,62 @@ import com.lambda.newui.theme.LambdaTheme
  */
 @Composable
 fun ClickGuiContent() {
-    LambdaTheme {
-        val shownTags by observeShownTags()
+	LambdaTheme {
+		val shownTags by observeShownTags()
 
-        // Focus history, most recently focused last. Derived from rather than mirroring
-        // the shown set, so it tolerates tags appearing and disappearing: stale entries
-        // are simply never looked up, and a tag that has never been focused is absent.
-        val focusOrder = remember { mutableStateListOf<ModuleTag>() }
+		// Focus history, most recently focused last. Derived from rather than mirroring
+		// the shown set, so it tolerates tags appearing and disappearing: stale entries
+		// are simply never looked up, and a tag that has never been focused is absent.
+		val focusOrder = remember { mutableStateListOf<ModuleTag>() }
 
-        // Never-focused tags yield indexOf == -1 and so sort to the front, i.e. render
-        // beneath focused ones. sortedBy is stable, so they keep shownTags order among
-        // themselves instead of collapsing onto a shared z-index.
-        val zIndexOf = shownTags
-            .sortedBy { focusOrder.indexOf(it) }
-            .withIndex()
-            .associate { (index, tag) -> tag to index.toFloat() }
+		// Never-focused tags yield indexOf == -1 and so sort to the front, i.e. render
+		// beneath focused ones. sortedBy is stable, so they keep shownTags order among
+		// themselves instead of collapsing onto a shared z-index.
+		val zIndexOf = shownTags
+			.sortedBy { focusOrder.indexOf(it) }
+			.withIndex()
+			.associate { (index, tag) -> tag to index.toFloat() }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(6.dp)
-        ) {
-            // Layout order stays the shown-tag order so panels don't jump around
-            // horizontally when one is focused; only zIndex reacts to focus.
-            shownTags.forEach { tag ->
-                // Keyed so a tag being shown or hidden doesn't shift the panels after it
-                // onto the wrong remembered drag offset and expanded state.
-                key(tag) {
-                    CategoryPanel(
-                        tag = tag,
-                        zIndex = zIndexOf[tag] ?: 0f,
-                        onFocus = {
-                            focusOrder.remove(tag)
-                            focusOrder.add(tag) // Move to end = highest z-index
-                        }
-                    )
-                }
-            }
-        }
-    }
+		Column(
+			modifier = Modifier.fillMaxSize(),
+			horizontalAlignment = Alignment.CenterHorizontally
+		) {
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(20.dp)
+					.background(colorScheme.background)
+					.border(BorderStroke(1.dp, colorScheme.outline))
+			) {
+				Image(
+					painter = painterResource(Res.drawable.lambda),
+					contentDescription = "Lambda logo"
+				)
+			}
+			Row(
+				horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally),
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(6.dp)
+					.offset(y = 100.dp),
+			) {
+				// Layout order stays the shown-tag order so panels don't jump around
+				// horizontally when one is focused; only zIndex reacts to focus.
+				shownTags.forEach { tag ->
+					// Keyed so a tag being shown or hidden doesn't shift the panels after it
+					// onto the wrong remembered drag offset and expanded state.
+					key(tag) {
+						CategoryPanel(
+							tag = tag,
+							zIndex = zIndexOf[tag] ?: 0f,
+							onFocus = {
+								focusOrder.remove(tag)
+								focusOrder.add(tag) // Move to end = highest z-index
+							}
+						)
+					}
+				}
+			}
+		}
+	}
 }

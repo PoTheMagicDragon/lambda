@@ -63,9 +63,9 @@ import java.util.*
 object MenuBar {
     private var aboutRequested = false
     var newConfigName = ""
-    val headerLogo = upload("textures/lambda_text_color.png")
-    val lambdaLogo = upload("textures/lambda.png")
-    val githubLogo = upload("textures/github_logo.png")
+    val headerLogo = upload("drawable/lambda_text_color.png")
+    val lambdaLogo = upload("drawable/lambda.png")
+    val githubLogo = upload("drawable/github_logo.png")
 
     var height = 0f
 

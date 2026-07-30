@@ -71,6 +71,7 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 plugins {
     kotlin("jvm") version "2.3.0"
     kotlin("plugin.compose") version "2.3.0"
+    id("org.jetbrains.compose") version "1.7.0"
     id("org.jetbrains.dokka") version "2.1.0"
     id("fabric-loom") version "1.16-SNAPSHOT"
     id("com.gradleup.shadow") version "9.3.0"
@@ -228,20 +229,27 @@ dependencies {
     shadowLib("org.jetbrains.compose.runtime:runtime-desktop:$composeVersion") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.skiko")
     }
     shadowLib("org.jetbrains.compose.ui:ui-desktop:$composeVersion") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.skiko")
     }
     shadowLib("org.jetbrains.compose.foundation:foundation-desktop:$composeVersion") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.skiko")
     }
     shadowLib("org.jetbrains.compose.material3:material3-desktop:$composeVersion") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.skiko")
     }
+
     shadowLib("org.jetbrains.skiko:skiko-awt-runtime-$skikoTarget:$skikoVersion")
+
+    implementation(compose.components.resources)
 
 	// DevLogin
 	modRuntimeOnly("com.ptsmods:devlogin:3.5")
@@ -252,6 +260,14 @@ dependencies {
 
     // Finish the configuration
     setupConfigurations()
+}
+
+compose.resources {
+    customDirectory(
+        "main",
+        provider { layout.projectDirectory.dir("src/main/resources/assets/lambda/compose/") }
+    )
+    packageOfResClass = "com.lambda.newui"
 }
 
 tasks {

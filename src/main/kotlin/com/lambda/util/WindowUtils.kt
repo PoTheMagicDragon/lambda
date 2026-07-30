@@ -41,7 +41,7 @@ object WindowUtils {
     }
 
     fun setLambdaWindowIcon() {
-        val icons = listOf(16, 24, 32, 48, 64, 128, 256).map { "textures/icon/logo_$it.png" }
+        val icons = listOf(16, 24, 32, 48, 64, 128, 256).map { "drawable/icon/logo_$it.png" }
         setWindowIcon(*icons.toTypedArray())
     }
 
@@ -53,10 +53,10 @@ object WindowUtils {
      * Example:
      * ```
      * WindowIcons.setWindowIcon(
-     *     "textures/icon16.png",
-     *     "textures/icon32.png",
-     *     "textures/icon48.png",
-     *     "textures/icon128.png",
+     *     "drawable/icon16.png",
+     *     "drawable/icon32.png",
+     *     "drawable/icon48.png",
+     *     "drawable/icon128.png",
      * )
      * ```
      */
