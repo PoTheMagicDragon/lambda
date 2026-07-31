@@ -17,69 +17,33 @@
 
 package com.lambda.newui.theme
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
+import com.lambda.util.Timer
 import org.jetbrains.skiko.SystemTheme
 import org.jetbrains.skiko.currentSystemTheme
+import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * Tracks whether the OS is in dark mode, as snapshot state.
- *
- * ### Why not `isSystemInDarkTheme()`
- *
- * Compose's own `isSystemInDarkTheme()` reads `LocalSystemTheme`, which is
- * `@InternalComposeUiApi` and — on this setup — never provided: the GUI drives a bare
- * [androidx.compose.ui.scene.ComposeScene] with no window layer, so the composition local
- * falls through to its default. That default does query the OS (via the same skiko call
- * used here), but it is a `staticCompositionLocalOf` behind a lazy holder, so the value is
- * computed once and then frozen for the life of the process, and reading a static local
- * creates no recomposition subscription. It would report the theme at startup and never
- * change. This object queries the same source but keeps it in ordinary snapshot state, so
- * a change actually recomposes.
- *
- * ### Cost
- *
- * `currentSystemTheme` bottoms out in a native JNI call (`SystemThemeHelper`), reading
- * `AppleInterfaceStyle` on macOS and the personalization registry key on Windows. There is
- * no AWT toolkit involved and no subprocess, so it is cheap enough to poll — but not free,
- * hence the throttle in [poll].
- */
 object SystemThemeTracker {
-    /**
-     * Minimum gap between OS queries. The GUI only polls while it is open, so this trades a
-     * worst-case half-second lag on a theme flip against two JNI calls per second.
-     */
-    private const val POLL_INTERVAL_MS = 500L
+    private const val POLL_INTERVAL = 500
 
-    private val darkState = mutableStateOf(queryIsDark())
-    private var lastQuery = 0L
+    private var dark = queryIsDark()
+    private val queryTimer = Timer()
 
-    /** Reading this from a composable subscribes it to OS theme changes. */
-    val isDark: State<Boolean> get() = darkState
+    val isSystemDark get() = dark
 
-    /** Queries the OS immediately. Call when the GUI opens, so it never appears stale. */
     fun refresh() {
-        lastQuery = System.currentTimeMillis()
-        darkState.value = queryIsDark()
+        queryTimer.reset()
+        dark = queryIsDark()
     }
 
-    /**
-     * Queries the OS at most once per [POLL_INTERVAL_MS]. Safe to call every frame.
-     *
-     * Snapshot writes take the global snapshot lock and are safe from any thread, so this
-     * can run on the render thread without marshalling.
-     */
     fun poll() {
-        val now = System.currentTimeMillis()
-        if (now - lastQuery < POLL_INTERVAL_MS) return
-        lastQuery = now
-        darkState.value = queryIsDark()
+        if (!queryTimer.timePassed(POLL_INTERVAL.milliseconds)) return
+        queryTimer.reset()
+        dark = queryIsDark()
     }
 
-    private fun queryIsDark(): Boolean = when (currentSystemTheme) {
-        SystemTheme.LIGHT -> false
-        // DARK, plus UNKNOWN on platforms skiko cannot read a preference from. The GUI has
-        // always been dark, so that is the less surprising fallback.
-        else -> true
-    }
+    private fun queryIsDark(): Boolean =
+        when (currentSystemTheme) {
+            SystemTheme.LIGHT -> false
+            else -> true
+        }
 }

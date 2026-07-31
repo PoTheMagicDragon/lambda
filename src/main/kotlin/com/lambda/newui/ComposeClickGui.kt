@@ -50,8 +50,6 @@ object ComposeClickGui : Loadable {
             if (Client.clientSounds) LambdaSound.ModuleOn.play()
 
             ComposeRenderer.initialize()
-            // The GUI can have been closed across an OS theme change, and polling only runs
-            // while it is open, so re-read before the first frame rather than after it.
             SystemThemeTracker.refresh()
 
             ComposeScreen.parentScreen = current

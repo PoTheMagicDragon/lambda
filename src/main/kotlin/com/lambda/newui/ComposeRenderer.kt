@@ -32,6 +32,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.modules.client.Style
 import com.lambda.newui.theme.SystemThemeTracker
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.BackendRenderTarget
@@ -92,6 +93,7 @@ object ComposeRenderer {
         // Throttled internally, and only reached while the GUI is open, so the OS theme is
         // never queried when nothing is on screen.
         SystemThemeTracker.poll()
+        Style.updateLambdaTheme()
 
         val width = mc.window.framebufferWidth
         val height = mc.window.framebufferHeight

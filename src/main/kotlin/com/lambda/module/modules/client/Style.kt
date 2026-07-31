@@ -17,14 +17,29 @@
 
 package com.lambda.module.modules.client
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
+import com.lambda.config.ConfigEditor.forEachSetting
 import com.lambda.config.Group
+import com.lambda.config.withEdits
 import com.lambda.module.Module
+import com.lambda.module.modules.client.Style.LambdaTypography
+import com.lambda.module.modules.client.Style.lambdaTheme
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.theme.SystemThemeTracker.isSystemDark
+import com.lambda.util.NamedEnum
 
 object Style : Module(
 	name = "Style",
@@ -34,7 +49,22 @@ object Style : Module(
 	const val DARK_THEME_GROUP = "Dark Theme"
 	const val LIGHT_THEME_GROUP = "Light Theme"
 
-	@Group(DARK_THEME_GROUP) val darkTheme by configBlock(
+	private enum class ThemeMode(
+		override val displayName: String = "$this"
+	) : NamedEnum {
+		Auto,
+		Dark,
+		Light
+	}
+
+	private enum class TrueThemeMode(val theme: LambdaColorSettings) {
+		Dark(darkTheme),
+		Light(lightTheme)
+	}
+
+	private val themeMode by setting("Theme", ThemeMode.Auto)
+
+	@Group(DARK_THEME_GROUP) private val darkTheme: LambdaColorSettings by configBlock(
 		LambdaColorSettings(
 			this,
 			true,
@@ -52,9 +82,15 @@ object Style : Module(
 			border = Color(140, 15, 65),
 			textShadow = Color(0, 0, 0, 180),
 		)
-	)
+	).withEdits {
+		forEachSetting {
+			val visibility = { themeMode == ThemeMode.Dark || (themeMode == ThemeMode.Auto && isSystemDark) }
+			visibility { visibility }
+			onValueChange { _, _ -> if (visibility()) lambdaTheme.value = darkTheme.toLambdaPalette() }
+		}
+	}
 
-	@Group(LIGHT_THEME_GROUP) val lightTheme by configBlock(
+	@Group(LIGHT_THEME_GROUP) private val lightTheme: LambdaColorSettings by configBlock(
 		LambdaColorSettings(
 			this,
 			false,
@@ -72,6 +108,57 @@ object Style : Module(
 			border = Color(198, 118, 148),
 			textShadow = Color(0, 0, 0, 60),
 		)
+	).withEdits {
+		forEachSetting {
+			val visibility = { themeMode == ThemeMode.Light || (themeMode == ThemeMode.Auto && !isSystemDark) }
+			visibility { visibility }
+			onValueChange { _, _ -> if (visibility()) lambdaTheme.value = lightTheme.toLambdaPalette() }
+		}
+	}
+
+	val lambdaTheme =
+		mutableStateOf(
+			getTrueThemeMode().theme.toLambdaPalette(),
+			referentialEqualityPolicy()
+		)
+	private var trueThemeMode = getTrueThemeMode()
+
+	val LambdaTypography = Typography(
+		titleMedium = TextStyle(
+			fontFamily = FontFamily.SansSerif,
+			fontWeight = FontWeight.Bold,
+			fontSize = 14.sp,
+		),
+		bodyMedium = TextStyle(
+			fontFamily = FontFamily.SansSerif,
+			fontWeight = FontWeight.Normal,
+			fontSize = 13.sp,
+		),
+		bodySmall = TextStyle(
+			fontFamily = FontFamily.SansSerif,
+			fontWeight = FontWeight.Normal,
+			fontSize = 11.sp,
+		),
+	)
+
+	fun updateLambdaTheme() {
+		val currentTrueThemeMode = getTrueThemeMode()
+		if (trueThemeMode == currentTrueThemeMode) return
+		lambdaTheme.value = currentTrueThemeMode.theme.toLambdaPalette()
+		trueThemeMode = currentTrueThemeMode
+	}
+
+	private fun getTrueThemeMode() =
+		if (themeMode == ThemeMode.Dark || (themeMode == ThemeMode.Auto && isSystemDark)) TrueThemeMode.Dark
+		else TrueThemeMode.Light
+}
+
+@Composable
+fun LambdaTheme(content: @Composable () -> Unit) {
+	MaterialTheme(
+		colorScheme = lambdaTheme.value,
+		typography = LambdaTypography,
+		content = content
 	)
 }
 

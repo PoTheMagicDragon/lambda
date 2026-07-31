@@ -63,15 +63,11 @@ import kotlin.math.roundToInt
 
 private const val GRID_SIZE_DP = 4f
 
-private fun snapToGrid(value: Float, gridSize: Float): Float {
-    return (value / gridSize).roundToInt() * gridSize
-}
+private fun snapToGrid(value: Float, gridSize: Float) =
+    (value / gridSize).roundToInt() * gridSize
 
 @Composable
 fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) {
-    // ModuleRegistry.modules is fixed after load, so the tag filter can be cached.
-    // "Show In ClickGui" is a live setting, so it has to be observed on every module —
-    // reading it here re-runs this filter whenever any of them changes.
     val tagged = remember(tag) { ModuleRegistry.modules.filter { it.tag == tag } }
     val modules = tagged.filter { it.showInClickGui.observe().value }
     if (modules.isEmpty()) return
@@ -142,13 +138,9 @@ fun CategoryPanel(tag: ModuleTag, zIndex: Float = 0f, onFocus: () -> Unit = {}) 
         ) {
             Column(
                 modifier = Modifier
-                    .weight(1f)
                     .verticalScroll(rememberScrollState())
             ) {
                 modules.forEach { module ->
-                    // Keyed because the list is now dynamic — `remember` is positional,
-                    // so without a key a module appearing or disappearing would shift
-                    // every card below it onto the wrong retained state.
                     key(module.name) {
                         ModuleCard(module)
                     }
