@@ -17,6 +17,9 @@
 
 package com.lambda.module.tag
 
+import com.lambda.module.tag.ModuleTag.Companion.onShownTagsChanged
+import com.lambda.module.tag.ModuleTag.Companion.shownTags
+import com.lambda.module.tag.ModuleTag.Companion.toggleTag
 import com.lambda.util.Nameable
 
 /**

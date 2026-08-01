@@ -33,7 +33,6 @@ import com.lambda.gui.DearImGui.EXTERNAL_LINK
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
-import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.ImGui.closeCurrentPopup
@@ -41,11 +40,9 @@ import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiStyleVar
 import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.imgui.type.ImBoolean
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleRegistry.moduleNameMap
 import com.lambda.module.tag.ModuleTag
-import com.lambda.network.LambdaAPI
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Diagnostics.gatherDiagnostics
@@ -142,20 +139,20 @@ object MenuBar {
             }
         }
         separator()
-        menu("Settings") {
-            menu("HUD Settings") {
-                buildConfigSettingsContext(HudGuiLayout)
-            }
-            menu("GUI Settings") {
-                buildConfigSettingsContext(ClickGuiLayout)
-            }
-            menu("Lambda API Settings") {
-                buildConfigSettingsContext(LambdaAPI)
-            }
-            menu("Baritone Settings") {
-                buildConfigSettingsContext(BaritoneHandler)
-            }
-        }
+//        menu("Settings") {
+//            menu("HUD Settings") {
+//                buildConfigSettingsContext(HudGuiLayout)
+//            }
+//            menu("GUI Settings") {
+//                buildConfigSettingsContext(ClickGuiLayout)
+//            }
+//            menu("Lambda API Settings") {
+//                buildConfigSettingsContext(LambdaAPI)
+//            }
+//            menu("Baritone Settings") {
+//                buildConfigSettingsContext(BaritoneHandler)
+//            }
+//        }
         separator()
         menu("Open Folder") {
             menuItem("Open Lambda Folder") {
@@ -254,12 +251,12 @@ object MenuBar {
         }
         separator()
         menu("HUD Settings") {
-            buildConfigSettingsContext(HudGuiLayout)
+//            buildConfigSettingsContext(HudGuiLayout)
         }
     }
 
     private fun ImGuiBuilder.buildGuiMenu() {
-        buildConfigSettingsContext(ClickGuiLayout)
+//        buildConfigSettingsContext(ClickGuiLayout)
     }
 
     private fun ImGuiBuilder.buildModulesMenu() {
@@ -312,7 +309,7 @@ object MenuBar {
 	    ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
 		menu(config.name) {
 			if (config is UserAutomationConfig) {
-				with(config.linkedModules) { buildLayout() }
+//				with(config.linkedModules) { buildLayout() }
 				button("Delete") {
 					config.linkedModules.value.forEach {
 						moduleNameMap[it]?.let { module ->
@@ -323,7 +320,7 @@ object MenuBar {
 				}
 				separator()
 			}
-			buildConfigSettingsContext(config)
+//			buildConfigSettingsContext(config)
 		}
     }
 

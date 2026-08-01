@@ -116,12 +116,12 @@ object Style : Module(
 		}
 	}
 
+	private var trueThemeMode = getTrueThemeMode()
 	val lambdaTheme =
 		mutableStateOf(
-			getTrueThemeMode().theme.toLambdaPalette(),
+			trueThemeMode.theme.toLambdaPalette(),
 			referentialEqualityPolicy()
 		)
-	private var trueThemeMode = getTrueThemeMode()
 
 	val LambdaTypography = Typography(
 		titleMedium = TextStyle(

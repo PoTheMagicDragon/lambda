@@ -34,14 +34,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.lambda.module.Module
 import com.lambda.module.modules.client.LambdaTheme
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newui.components.CategoryPanel
 import com.lambda.newui.state.LambdaState.observeShownTags
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -50,6 +58,8 @@ fun ClickGuiContent() {
 		val shownTags by observeShownTags()
 
 		val focusOrder = remember { mutableStateListOf<ModuleTag>() }
+		var selectedSettingsModule by remember { mutableStateOf<Module?>(null) }
+		val scope = rememberCoroutineScope()
 
 		val zIndexOf = shownTags
 			.sortedBy { focusOrder.indexOf(it) }
@@ -57,7 +67,19 @@ fun ClickGuiContent() {
 			.associate { (index, tag) -> tag to index.toFloat() }
 
 		Column(
-			modifier = Modifier.fillMaxSize(),
+			modifier = Modifier.fillMaxSize()
+				.pointerInput(Unit) {
+					awaitPointerEventScope {
+						while (true) {
+							val event = awaitPointerEvent(PointerEventPass.Main)
+							if (event.type == PointerEventType.Press) {
+								if (event.changes.none { it.isConsumed }) {
+									scope.launch { selectedSettingsModule = null }
+								}
+							}
+						}
+					}
+				},
 			horizontalAlignment = Alignment.CenterHorizontally
 		) {
 			// Menu bar
@@ -90,7 +112,9 @@ fun ClickGuiContent() {
 							onFocus = {
 								focusOrder.remove(tag)
 								focusOrder.add(tag)
-							}
+							},
+							selectedSettingsModule = selectedSettingsModule,
+							onSettingsModuleChange = { selectedSettingsModule = it }
 						)
 					}
 				}

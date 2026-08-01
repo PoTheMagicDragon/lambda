@@ -17,6 +17,8 @@
 
 package com.lambda.config.settings.comparable
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.value
@@ -26,11 +28,8 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.Describable
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
-import com.lambda.util.extension.displayValue
 import net.minecraft.command.CommandRegistryAccess
 
 class EnumSetting<T : Enum<T>>(
@@ -41,25 +40,9 @@ class EnumSetting<T : Enum<T>>(
     visibility: () -> Boolean,
     defaultValue: T
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
-    override fun ImGuiBuilder.buildLayout() {
-        val values = value.enumValues
-        val currentDisplay = value.displayValue
-        val currentIndex = value.ordinal
-
-        combo("##$name", preview = "$name: $currentDisplay") {
-            values.forEachIndexed { idx, v ->
-                val isSelected = idx == currentIndex
-
-                selectable(v.displayValue, isSelected) {
-                    if (!isSelected) value = values[idx % values.size]
-                }
-
-                (v as? Describable)?.let { lambdaTooltip(it.description) }
-            }
-        }
-
-        lambdaTooltip(description)
-    }
+    @ExperimentalMaterial3Api
+    @Composable
+    override fun gui() {}
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->

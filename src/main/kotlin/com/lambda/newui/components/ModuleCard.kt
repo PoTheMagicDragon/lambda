@@ -28,28 +28,33 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lambda.module.Module
 import com.lambda.newui.state.LambdaState.observeEnabled
+import kotlinx.coroutines.launch
 
-/**
- * A clickable card representing a single [Module].
- * Displays the module name, toggles on click, and animates the background color
- * between its enabled and disabled states.
- *
- * The enabled flag is observed from the module itself, so the card stays correct when
- * the module is toggled by a keybind, a command, or a config load rather than a click.
- */
 @Composable
-fun ModuleCard(module: Module) {
+fun ModuleCard(
+    module: Module,
+    isSettingsOpen: Boolean,
+    onRightClick: () -> Unit,
+    onPositionChange: (LayoutCoordinates) -> Unit
+) {
     val enabled by module.observeEnabled()
-
     val colors = MaterialTheme.colorScheme
 
     val backgroundColor by animateColorAsState(
@@ -57,13 +62,29 @@ fun ModuleCard(module: Module) {
         animationSpec = spring(),
         label = "moduleCardBg"
     )
-
     val textColor = if (enabled) colors.onSecondaryContainer else colors.onSurfaceVariant
+
+    val currentOnRightClick by rememberUpdatedState(onRightClick)
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
+            .onGloballyPositioned { onPositionChange(it) }
             .fillMaxWidth()
-            .background(backgroundColor)
+            .background(if (isSettingsOpen) colors.primaryContainer else backgroundColor)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Main)
+                        if (event.type == PointerEventType.Press) {
+                            if (event.buttons.isSecondaryPressed) {
+                                scope.launch { currentOnRightClick() }
+                                event.changes.forEach { it.consume() }
+                            }
+                        }
+                    }
+                }
+            }
             .clickable { module.toggle() }
             .padding(horizontal = 5.dp, vertical = 2.dp)
     ) {
@@ -71,7 +92,7 @@ fun ModuleCard(module: Module) {
             text = module.name,
             fontSize = 9.sp,
             lineHeight = 9.sp,
-            color = textColor,
+            color = if (isSettingsOpen) colors.onPrimaryContainer else textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             style = TextStyle(shadow = Shadow(color = colors.scrim, offset = Offset(2f, 2f)))

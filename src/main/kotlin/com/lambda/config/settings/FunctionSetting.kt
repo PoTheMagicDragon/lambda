@@ -17,10 +17,13 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
 
 class FunctionSetting<T : () -> R, R>(
 	name: String,
@@ -30,8 +33,11 @@ class FunctionSetting<T : () -> R, R>(
 	layer: SettingEntryLayer<FunctionSetting<T, R>, T>,
 	visibility: () -> Boolean
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {
-        button(name) { value() }
-        lambdaTooltip(description)
-    }
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {
+		Button(onClick = { value() }) {
+			Text(name)
+		}
+	}
 }

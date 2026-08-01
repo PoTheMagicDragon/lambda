@@ -17,6 +17,8 @@
 
 package com.lambda.config.settings.collections
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
@@ -74,7 +76,9 @@ open class CollectionSetting<R : Any>(
 			value.size != defaultValue.size || defaultValue.any { !value.contains(it) }
 		}
 
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.toString() }
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {}
 
 	fun ImGuiBuilder.buildDualPane(itemName: String, toString: (R) -> String) {
 		val text = if (value.size == 1) itemName else "${itemName}s"

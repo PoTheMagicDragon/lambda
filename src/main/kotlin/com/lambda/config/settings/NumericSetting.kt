@@ -17,16 +17,36 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults.rememberPlainTooltipPositionProvider
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.dp
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImGui.calcTextSize
-import com.lambda.imgui.ImGui.dummy
-import com.lambda.imgui.flag.ImGuiCol
 import java.text.NumberFormat
 import java.util.*
 
@@ -59,39 +79,72 @@ abstract class NumericSetting<T>(
 	 */
 	protected abstract fun ImGuiBuilder.buildSlider()
 
-	override fun ImGuiBuilder.buildLayout() {
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {
 		val showReset = isModified
 		val resetButtonText = "R"
-		val valueString = this@NumericSetting.toString()
+		val valueString = this.toString()
 
-		buildSlider()
-		lambdaTooltip(description)
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.height(IntrinsicSize.Min), // Prevents the Row from stretching if children are smaller
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(8.dp)
+		) {
+			Text(
+				text = name,
+				style = MaterialTheme.typography.bodyMedium
+			)
 
-		val itemRectMin = ImGui.getItemRectMin()
-		val itemRectMax = ImGui.getItemRectMax()
-		val textHeight = ImGui.getTextLineHeight()
-		val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
-		val labelWidth = calcTextSize(name).x
-		val valueWidth = calcTextSize(valueString).x
+//			Slider(
+//				value = value,
+//				onValueChange = { newValue ->
+//				},
+//				modifier = Modifier.weight(1f)
+//			)
 
-		val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
-		val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
+			BoxWithConstraints(
+				modifier = Modifier.fillMaxHeight(),
+				contentAlignment = Alignment.CenterStart
+			) {
+				val textMeasurer = rememberTextMeasurer()
+				val textStyle = MaterialTheme.typography.bodyMedium
+				val valueTextWidth = remember(valueString) {
+					textMeasurer.measure(
+						text = valueString,
+						style = textStyle
+					).size.width.dp
+				}
 
-		windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), name)
-		if (labelEndPosX < valueStartPosX) {
-			windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
-		}
-
-		sameLine(0.0f, style.itemSpacing.x)
-		if (showReset) {
-			button("$resetButtonText##$name") {
-				reset()
+				if (maxWidth > valueTextWidth) {
+					Text(
+						text = valueString,
+						style = textStyle
+					)
+				}
 			}
-			onItemHover {
-				tooltip { text("Reset to default") }
+
+			if (showReset) {
+				TooltipBox(
+					positionProvider = rememberPlainTooltipPositionProvider(),
+					tooltip = {
+						Text("Reset to default")
+					},
+					state = rememberTooltipState(isPersistent = false)
+				) {
+					Button(
+						onClick = { reset() },
+						modifier = Modifier.height(32.dp).width(32.dp),
+						contentPadding = PaddingValues(0.dp)
+					) {
+						Text(resetButtonText)
+					}
+				}
+			} else {
+				Spacer(modifier = Modifier.size(width = 32.dp, height = 32.dp))
 			}
-		} else {
-			dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
 		}
 	}
 

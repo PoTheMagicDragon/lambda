@@ -57,11 +57,11 @@ import net.minecraft.item.Item
 import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import java.awt.Color as JColor
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
+import java.awt.Color as JColor
 
 /**
  * Represents a set of [EntryCore]s that are associated with the [name] of the [Config].
