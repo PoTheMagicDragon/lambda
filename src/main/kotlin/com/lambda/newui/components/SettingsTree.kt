@@ -24,16 +24,20 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,16 +46,99 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
 import com.lambda.config.entries.Setting
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Collapsible, labeled container used for setting groups and for the
+ * module/automation config sections appended below a module's settings.
+ */
+@Composable
+fun SettingsGroup(
+    name: String,
+    suffix: String? = null,
+    content: @Composable () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(150)
+    )
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 4.dp)
+        ) {
+            Text(
+                text = "▶",
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(end = 4.dp).rotate(rotation),
+                style = TextStyle(
+                    fontSize = 7.sp, lineHeight = 7.sp, lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both
+                    )
+                )
+            )
+            Text(
+                text = name,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = TextStyle(
+                    fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both
+                    )
+                )
+            )
+            if (suffix != null) {
+                Text(
+                    text = suffix,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 4.dp),
+                    style = TextStyle(
+                        fontSize = 8.sp, lineHeight = 8.sp, lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.Both
+                        )
+                    )
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(animationSpec = tween(150)) + fadeIn(animationSpec = tween(150)),
+            exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 6.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsTree(layer: EntryLayer<Setting<*>>) {
     when (layer) {
@@ -69,25 +156,49 @@ fun SettingsTree(layer: EntryLayer<Setting<*>>) {
                     .filter { it.multipleType == MultipleLayerType.Tab }
                 var selectedTabIndex by remember { mutableStateOf(0) }
 
+                val colors = MaterialTheme.colorScheme
+                val barShape = RoundedCornerShape(4.dp)
+
                 Column {
-                    TabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth().height(20.dp)
+                    // A TabRow splits its width evenly, which squeezes longer names down to a
+                    // single wrapped character in the narrow panel. The tabs are laid out as one
+                    // continuous segmented bar instead: labels keep their own width and wrap onto
+                    // more rows when needed, and the single filled cell reads as "pick one".
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                            .clip(barShape)
+                            .background(colors.surfaceContainer)
+                            .border(1.dp, colors.outlineVariant, barShape)
                     ) {
                         tabs.forEachIndexed { index, tabLayer ->
-                            Tab(
-                                selected = selectedTabIndex == index,
-                                onClick = { selectedTabIndex = index },
-                                text = { Text(tabLayer.name, fontSize = 8.sp) }
-                            )
+                            val selected = selectedTabIndex == index
+                            Box(
+                                modifier = Modifier
+                                    .background(if (selected) colors.primary else Color.Transparent)
+                                    .clickable { selectedTabIndex = index }
+                                    .padding(horizontal = 5.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = tabLayer.name,
+                                    color = if (selected) colors.onPrimary else colors.onSurfaceVariant,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    style = TextStyle(
+                                        fontSize = 8.sp, lineHeight = 8.sp, lineHeightStyle = LineHeightStyle(
+                                            alignment = LineHeightStyle.Alignment.Center,
+                                            trim = LineHeightStyle.Trim.Both
+                                        )
+                                    )
+                                )
+                            }
                         }
                     }
-                    
+
                     val selectedTab = tabs.getOrNull(selectedTabIndex)
                     if (selectedTab != null) {
-                        Column(modifier = Modifier.padding(top = 2.dp)) {
+                        Column {
                             selectedTab.layers.forEach { child ->
                                 SettingsTree(child)
                             }
@@ -95,59 +206,9 @@ fun SettingsTree(layer: EntryLayer<Setting<*>>) {
                     }
                 }
             } else if (layer.multipleType == MultipleLayerType.Group) {
-                var expanded by remember { mutableStateOf(false) }
-
-                val rotation by animateFloatAsState(
-                    targetValue = if (expanded) 90f else 0f,
-                    animationSpec = tween(150)
-                )
-
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(16.dp)
-                            .clickable { expanded = !expanded }
-                            .padding(horizontal = 4.dp)
-                    ) {
-                        Text(
-                            text = "▶",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(end = 4.dp).rotate(rotation),
-                            style = TextStyle(
-                                fontSize = 7.sp, lineHeight = 7.sp, lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both
-                                )
-                            )
-                        )
-                        Text(
-                            text = layer.name,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = TextStyle(
-                                fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both
-                                )
-                            )
-                        )
-                    }
-
-                    AnimatedVisibility(
-                        visible = expanded,
-                        enter = expandVertically(animationSpec = tween(150)) + fadeIn(animationSpec = tween(150)),
-                        exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 6.dp)
-                        ) {
-                            layer.layers.forEach { child ->
-                                SettingsTree(child)
-                            }
-                        }
+                SettingsGroup(layer.name) {
+                    layer.layers.forEach { child ->
+                        SettingsTree(child)
                     }
                 }
             } else {

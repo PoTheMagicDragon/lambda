@@ -166,6 +166,7 @@ fun CategoryPanel(
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 SettingsTree(module.settingLayers)
+                                ModuleConfigSettings(module)
                             }
                         }
                     }
