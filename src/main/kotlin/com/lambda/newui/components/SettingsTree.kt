@@ -138,6 +138,19 @@ fun SettingsGroup(
     }
 }
 
+/**
+ * Whether this layer holds at least one currently visible setting, at any depth.
+ * Layers that hold none are skipped entirely so the panel has no empty headers.
+ */
+fun EntryLayer.Multiple<Setting<*>>.hasVisibleSettings(): Boolean =
+    layers.any { child ->
+        when (child) {
+            is EntryLayer.Single -> child.entry.visibility()
+            is EntryLayer.Multiple -> child.hasVisibleSettings()
+            else -> false
+        }
+    }
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsTree(layer: EntryLayer<Setting<*>>) {
@@ -153,7 +166,8 @@ fun SettingsTree(layer: EntryLayer<Setting<*>>) {
 
             if (hasTabs) {
                 val tabs = layer.layers.filterIsInstance<EntryLayer.Multiple<Setting<*>>>()
-                    .filter { it.multipleType == MultipleLayerType.Tab }
+                    .filter { it.multipleType == MultipleLayerType.Tab && it.hasVisibleSettings() }
+                if (tabs.isEmpty()) return
                 var selectedTabIndex by remember { mutableStateOf(0) }
 
                 val colors = MaterialTheme.colorScheme
@@ -196,16 +210,16 @@ fun SettingsTree(layer: EntryLayer<Setting<*>>) {
                         }
                     }
 
-                    val selectedTab = tabs.getOrNull(selectedTabIndex)
-                    if (selectedTab != null) {
-                        Column {
-                            selectedTab.layers.forEach { child ->
-                                SettingsTree(child)
-                            }
+                    // The selection can fall out of range when a tab stops having visible settings.
+                    val selectedTab = tabs.getOrNull(selectedTabIndex) ?: tabs.first()
+                    Column {
+                        selectedTab.layers.forEach { child ->
+                            SettingsTree(child)
                         }
                     }
                 }
             } else if (layer.multipleType == MultipleLayerType.Group) {
+                if (!layer.hasVisibleSettings()) return
                 SettingsGroup(layer.name) {
                     layer.layers.forEach { child ->
                         SettingsTree(child)
