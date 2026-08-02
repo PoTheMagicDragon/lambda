@@ -33,6 +33,7 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.modules.client.Style
+import com.lambda.newui.inspector.InspectorHost
 import com.lambda.newui.theme.SystemThemeTracker
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.BackendRenderTarget
@@ -75,7 +76,7 @@ object ComposeRenderer {
             invalidate = {}
         ).apply {
             setContent {
-                ClickGuiContent()
+                InspectorHost { ClickGuiContent() }
             }
         }
 

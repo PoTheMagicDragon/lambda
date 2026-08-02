@@ -247,6 +247,14 @@ dependencies {
         exclude(group = "org.jetbrains.skiko")
     }
 
+    // Slot-table reader behind the layout inspector. Only the tree walker is published for
+    // desktop; the Android-only Inspectable API is reimplemented in com.lambda.newui.inspector.
+    shadowLib("org.jetbrains.compose.ui:ui-tooling-data-desktop:$composeVersion") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.skiko")
+    }
+
     shadowLib("org.jetbrains.skiko:skiko-awt-runtime-$skikoTarget:$skikoVersion")
 
     implementation(compose.components.resources)
