@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -76,11 +77,11 @@ class EnumSetting<T : Enum<T>>(
 
         Column(
             modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 0.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 0.dp)
                     .height(16.dp)
                     .background(Color(0xFF442233))
                     .clickable { expanded = !expanded },
@@ -136,6 +137,8 @@ class EnumSetting<T : Enum<T>>(
                                     value = enumValue
                                     expanded = false
                                 }
+                                .background(if (stateValue == enumValue) Color(0xFF552233) else Color.Transparent)
+                                .clip(shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
                                 .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
