@@ -17,16 +17,11 @@
 
 package com.lambda.newui.components
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,13 +46,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -117,13 +115,23 @@ fun CategoryPanel(
             modules.forEach { module ->
                 key(module.name) {
                     val yOffset = yOffsets[module.name] ?: 0f
-                    AnimatedVisibility(
-                        visible = selectedSettingsModule == module,
-                        enter = slideInHorizontally(animationSpec = spring()) { -it / 2 } + fadeIn(),
-                        exit = slideOutHorizontally(animationSpec = spring()) { -it / 2 } + fadeOut(),
+                    val isVisible = selectedSettingsModule == module
+                    val transitionProgress by animateFloatAsState(
+                        targetValue = if (isVisible) 1f else 0f,
+                        animationSpec = spring(),
+                        label = "SettingsAnimation"
+                    )
+
+                    val slideOffset = (1f - transitionProgress) * -50f
+
+                    Box(
                         modifier = Modifier
                             .wrapContentSize(unbounded = true, align = Alignment.TopStart)
-                            .offset { IntOffset(99.dp.roundToPx(), yOffset.roundToInt()) }
+                            .offset { 
+                                if (transitionProgress == 0f) IntOffset(-9999, -9999) 
+                                else IntOffset(99.dp.roundToPx() + slideOffset.roundToInt(), yOffset.roundToInt()) 
+                            }
+                            .graphicsLayer { alpha = transitionProgress }
                     ) {
                         Box(
                             modifier = Modifier
@@ -131,23 +139,23 @@ fun CategoryPanel(
                                 .clip(settingsShape)
                                 .background(colors.surfaceVariant)
                                 .border(1.dp, colors.outline, settingsShape)
-                                .pointerInput(Unit) {
-                                    awaitPointerEventScope {
-                                        while (true) {
-                                            val event = awaitPointerEvent(PointerEventPass.Main)
-                                            if (event.type == PointerEventType.Press) {
-                                                event.changes.forEach { it.consume() }
+                                .pointerInput(isVisible) {
+                                    if (isVisible) {
+                                        awaitEachGesture {
+                                            while (true) {
+                                                val event = awaitPointerEvent(PointerEventPass.Main)
+                                                if (event.type == PointerEventType.Press) {
+                                                    event.changes.forEach { it.consume() }
+                                                }
                                             }
                                         }
                                     }
                                 }
                                 .padding(8.dp)
                         ) {
-                            Text(
-                                text = "${module.name} Settings",
-                                color = colors.onSurfaceVariant,
-                                fontSize = 10.sp
-                            )
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                SettingsTree(module.settingLayers)
+                            }
                         }
                     }
                 }
@@ -161,7 +169,7 @@ fun CategoryPanel(
                     .onGloballyPositioned { panelCoordinates = it }
                     .width(100.dp)
                     .pointerInput(Unit) {
-                        awaitPointerEventScope {
+                        awaitEachGesture {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
                                 if (event.type == PointerEventType.Press) {
@@ -187,17 +195,18 @@ fun CategoryPanel(
                             )
                         }
                         .pointerInput(Unit) {
-                            awaitPointerEventScope {
+                            awaitEachGesture {
                                 while (true) {
                                     val event = awaitPointerEvent(PointerEventPass.Main)
                                     if (event.type == PointerEventType.Press) {
                                         if (event.buttons.isSecondaryPressed) {
                                             scope.launch {
                                                 expanded = !expanded
-                                                if (!expanded && modules.contains(selectedSettingsModule)) {
+                                                if (!expanded) {
                                                     onSettingsModuleChange(null)
                                                 }
                                             }
+                                            event.changes.forEach { it.consume() }
                                         }
                                     }
                                 }
@@ -217,10 +226,23 @@ fun CategoryPanel(
                     )
                 }
 
-                AnimatedVisibility(
-                    visible = expanded,
-                    enter = expandVertically(),
-                    exit = shrinkVertically()
+                val expandProgress by animateFloatAsState(
+                    targetValue = if (expanded) 1f else 0f,
+                    animationSpec = spring(),
+                    label = "ExpandAnimation"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clipToBounds()
+                        .layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            val currentHeight = (placeable.height * expandProgress).roundToInt()
+                            layout(placeable.width, currentHeight) {
+                                placeable.place(0, currentHeight - placeable.height)
+                            }
+                        }
                 ) {
                     Column(
                         modifier = Modifier

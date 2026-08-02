@@ -17,8 +17,25 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -48,7 +65,45 @@ class StringSetting(
 
     @ExperimentalMaterial3Api
     @Composable
-    override fun gui() {}
+    override fun gui() {
+        val stateValue by observeState()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 0.dp)
+        ) {
+            Text(
+                text = name,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 1.dp),
+                style = TextStyle(
+                    fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both
+                    )
+                )
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(16.dp)
+                    .background(Color(0xFF222222))
+                    .padding(2.dp)
+            ) {
+                BasicTextField(
+                    value = stateValue,
+                    onValueChange = { value = it },
+                    singleLine = !multiline,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 9.sp,
+                        color = Color.White
+                    ),
+                    cursorBrush = SolidColor(Color.White)
+                )
+            }
+        }
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(greedyString(name)) { parameter ->

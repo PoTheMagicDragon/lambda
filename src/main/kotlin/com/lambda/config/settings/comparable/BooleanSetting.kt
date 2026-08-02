@@ -17,8 +17,28 @@
 
 package com.lambda.config.settings.comparable
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -37,9 +57,48 @@ class BooleanSetting(
 	visibility: () -> Boolean,
 	defaultValue: Boolean
 ) : Setting<Boolean>(name, description, defaultValue, layer, config, visibility) {
+
 	@ExperimentalMaterial3Api
 	@Composable
-	override fun gui() {}
+	override fun gui() {
+		val stateValue by observeState()
+		Row(
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(4.dp),
+			modifier = Modifier
+				.fillMaxWidth()
+				.height(16.dp)
+				.clickable { value = !stateValue }
+				.padding(horizontal = 4.dp)
+		) {
+			Box(
+				modifier = Modifier
+					.size(10.dp)
+					.clip(RoundedCornerShape(2.dp))
+					.background(if (stateValue) colorScheme.primary else Color(0xFF442233)),
+				contentAlignment = Alignment.Center
+			) {
+				if (stateValue) {
+					Text(
+						text = "✔",
+						color = Color.White,
+						fontSize = 8.sp,
+						modifier = Modifier.padding(bottom = 1.dp)
+					)
+				}
+			}
+			Text(
+				text = name,
+				color = colorScheme.onSurface,
+				style = androidx.compose.ui.text.TextStyle(
+					fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+						alignment = LineHeightStyle.Alignment.Center,
+						trim = LineHeightStyle.Trim.Both
+					)
+				)
+			)
+		}
+	}
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(boolean(name)) { parameter ->

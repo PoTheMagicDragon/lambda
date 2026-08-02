@@ -17,10 +17,19 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
@@ -36,8 +45,24 @@ class FunctionSetting<T : () -> R, R>(
 	@ExperimentalMaterial3Api
 	@Composable
 	override fun gui() {
-		Button(onClick = { value() }) {
-			Text(name)
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = 4.dp, vertical = 2.dp),
+			contentAlignment = Alignment.Center
+		) {
+			Button(
+				onClick = { value() },
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(24.dp),
+				contentPadding = PaddingValues(0.dp)
+			) {
+				Text(
+					text = name,
+					fontSize = 9.sp
+				)
+			}
 		}
 	}
 }

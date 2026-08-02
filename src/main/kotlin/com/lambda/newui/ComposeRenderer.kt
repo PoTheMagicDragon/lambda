@@ -70,7 +70,7 @@ object ComposeRenderer {
         if (initialized) return
 
         scene = CanvasLayersComposeScene(
-            coroutineContext = Dispatchers.Default,
+            coroutineContext = Dispatchers.Unconfined,
             density = Density(3f),
             invalidate = {}
         ).apply {
@@ -137,6 +137,7 @@ object ComposeRenderer {
                 currentWidth = width
                 currentHeight = height
 
+                scene?.density = Density(height / 720f)
                 scene?.size = IntSize(width, height)
             }
 
@@ -235,7 +236,7 @@ object ComposeRenderer {
     private data class GLState(
         val activeTexture: Int,
         val program: Int,
-        val texture2D: Int,
+        val textureBindings: IntArray,
         val arrayBuffer: Int,
         val elementArrayBuffer: Int,
         val vertexArray: Int,
@@ -262,10 +263,17 @@ object ComposeRenderer {
     )
 
     private fun saveGLState(): GLState {
+        val originalActiveTexture = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE)
+        val textureBindings = IntArray(8) { unit ->
+            GL13.glActiveTexture(GL13.GL_TEXTURE0 + unit)
+            GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D)
+        }
+        GL13.glActiveTexture(originalActiveTexture)
+
         return GLState(
-            activeTexture = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE),
+            activeTexture = originalActiveTexture,
             program = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM),
-            texture2D = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D),
+            textureBindings = textureBindings,
             arrayBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING),
             elementArrayBuffer = GL11.glGetInteger(GL15.GL_ELEMENT_ARRAY_BUFFER_BINDING),
             vertexArray = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING),
@@ -310,7 +318,10 @@ object ComposeRenderer {
 
     private fun restoreGLState(state: GLState) {
         GL20.glUseProgram(state.program)
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, state.texture2D)
+        state.textureBindings.forEachIndexed { unit, binding ->
+            GL13.glActiveTexture(GL13.GL_TEXTURE0 + unit)
+            GL11.glBindTexture(GL11.GL_TEXTURE_2D, binding)
+        }
         GL13.glActiveTexture(state.activeTexture)
         GL30.glBindVertexArray(state.vertexArray)
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, state.arrayBuffer)
@@ -322,6 +333,8 @@ object ComposeRenderer {
         if (state.depthTestEnabled) GL11.glEnable(GL11.GL_DEPTH_TEST) else GL11.glDisable(GL11.GL_DEPTH_TEST)
         if (state.stencilTestEnabled) GL11.glEnable(GL11.GL_STENCIL_TEST) else GL11.glDisable(GL11.GL_STENCIL_TEST)
         if (state.scissorTestEnabled) GL11.glEnable(GL11.GL_SCISSOR_TEST) else GL11.glDisable(GL11.GL_SCISSOR_TEST)
+        GL11.glColorMask(true, true, true, true)
+        GL11.glDepthMask(true)
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, state.framebuffer)
         GL11.glPixelStorei(GL11.GL_UNPACK_SWAP_BYTES, state.unpackSwapBytes)
         GL11.glPixelStorei(GL11.GL_UNPACK_LSB_FIRST, state.unpackLsbFirst)

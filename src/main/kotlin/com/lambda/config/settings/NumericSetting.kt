@@ -17,30 +17,30 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults.rememberPlainTooltipPositionProvider
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
@@ -82,68 +82,79 @@ abstract class NumericSetting<T>(
 	@ExperimentalMaterial3Api
 	@Composable
 	override fun gui() {
-		val showReset = isModified
-		val resetButtonText = "R"
-		val valueString = this.toString()
+		val stateValue by observeState()
+		val valueString = stateValue.toString()
 
-		Row(
+		val min = (range.start as Number).toFloat()
+		val max = (range.endInclusive as Number).toFloat()
+		val current = (stateValue as Number).toFloat()
+		val fraction = ((current - min) / (max - min)).coerceIn(0f, 1f)
+
+		Box(
 			modifier = Modifier
 				.fillMaxWidth()
-				.height(IntrinsicSize.Min), // Prevents the Row from stretching if children are smaller
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(8.dp)
-		) {
-			Text(
-				text = name,
-				style = MaterialTheme.typography.bodyMedium
-			)
-
-//			Slider(
-//				value = value,
-//				onValueChange = { newValue ->
-//				},
-//				modifier = Modifier.weight(1f)
-//			)
-
-			BoxWithConstraints(
-				modifier = Modifier.fillMaxHeight(),
-				contentAlignment = Alignment.CenterStart
-			) {
-				val textMeasurer = rememberTextMeasurer()
-				val textStyle = MaterialTheme.typography.bodyMedium
-				val valueTextWidth = remember(valueString) {
-					textMeasurer.measure(
-						text = valueString,
-						style = textStyle
-					).size.width.dp
-				}
-
-				if (maxWidth > valueTextWidth) {
-					Text(
-						text = valueString,
-						style = textStyle
-					)
-				}
-			}
-
-			if (showReset) {
-				TooltipBox(
-					positionProvider = rememberPlainTooltipPositionProvider(),
-					tooltip = {
-						Text("Reset to default")
-					},
-					state = rememberTooltipState(isPersistent = false)
-				) {
-					Button(
-						onClick = { reset() },
-						modifier = Modifier.height(32.dp).width(32.dp),
-						contentPadding = PaddingValues(0.dp)
-					) {
-						Text(resetButtonText)
+				.padding(horizontal = 4.dp, vertical = 0.dp)
+				.height(16.dp)
+				.background(Color(0xFF333333))
+				.pointerInput(Unit) {
+					detectDragGestures { change, _ ->
+						val percent = (change.position.x / size.width).coerceIn(0f, 1f)
+						val newValue = min + (max - min) * percent
+						value = when (stateValue) {
+							is Int -> newValue.toInt() as T
+							is Long -> newValue.toLong() as T
+							is Float -> newValue as T
+							is Double -> newValue.toDouble() as T
+							else -> newValue as T
+						}
 					}
 				}
-			} else {
-				Spacer(modifier = Modifier.size(width = 32.dp, height = 32.dp))
+				.pointerInput(Unit) {
+					detectTapGestures { offset ->
+						val percent = (offset.x / size.width).coerceIn(0f, 1f)
+						val newValue = min + (max - min) * percent
+						value = when (stateValue) {
+							is Int -> newValue.toInt() as T
+							is Long -> newValue.toLong() as T
+							is Float -> newValue as T
+							is Double -> newValue.toDouble() as T
+							else -> newValue as T
+						}
+					}
+				},
+			contentAlignment = Alignment.CenterStart
+		) {
+			Box(
+				modifier = Modifier
+					.fillMaxHeight()
+					.fillMaxWidth(fraction)
+					.background(MaterialTheme.colorScheme.primary)
+			)
+			Row(
+				modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Text(
+					text = name,
+					color = Color.White,
+					style = TextStyle(
+						fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+							alignment = LineHeightStyle.Alignment.Center,
+							trim = LineHeightStyle.Trim.Both
+						)
+					)
+				)
+				Text(
+					text = valueString,
+					color = Color.White,
+					style = TextStyle(
+						fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+							alignment = LineHeightStyle.Alignment.Center,
+							trim = LineHeightStyle.Trim.Both
+						)
+					)
+				)
 			}
 		}
 	}
@@ -166,3 +177,4 @@ abstract class NumericSetting<T>(
 		}
 	}
 }
+

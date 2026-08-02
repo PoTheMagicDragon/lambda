@@ -21,6 +21,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,7 +70,7 @@ fun ClickGuiContent() {
 		Column(
 			modifier = Modifier.fillMaxSize()
 				.pointerInput(Unit) {
-					awaitPointerEventScope {
+					awaitEachGesture {
 						while (true) {
 							val event = awaitPointerEvent(PointerEventPass.Main)
 							if (event.type == PointerEventType.Press) {
