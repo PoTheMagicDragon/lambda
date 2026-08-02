@@ -64,6 +64,12 @@ object Style : Module(
 
 	private val themeMode by setting("Theme", ThemeMode.Auto)
 
+	val enableGlow by setting("Enable Glow", true)
+	val glowRadius by setting("Glow Radius", 35f, 0f..100f, 1f)
+	val glowIntensity by setting("Glow Intensity", 1.2f, 0f..10f, 0.1f)
+	val glowColor1 by setting("Glow Color 1", Color(0, 128, 255))
+	val glowColor2 by setting("Glow Color 2", Color(255, 50, 153))
+
 	@Group(DARK_THEME_GROUP) private val darkTheme: LambdaColorSettings by configBlock(
 		LambdaColorSettings(
 			this,
@@ -84,9 +90,10 @@ object Style : Module(
 		)
 	).withEdits {
 		forEachSetting {
-			val visibility = { themeMode == ThemeMode.Dark || (themeMode == ThemeMode.Auto && isSystemDark) }
-			visibility { visibility }
-			onValueChange { _, _ -> if (visibility()) lambdaTheme.value = darkTheme.toLambdaPalette() }
+			onValueChange { _, _ ->
+				val visible = themeMode == ThemeMode.Dark || (themeMode == ThemeMode.Auto && isSystemDark)
+				if (visible) lambdaTheme.value = darkTheme.toLambdaPalette()
+			}
 		}
 	}
 
@@ -110,9 +117,10 @@ object Style : Module(
 		)
 	).withEdits {
 		forEachSetting {
-			val visibility = { themeMode == ThemeMode.Light || (themeMode == ThemeMode.Auto && !isSystemDark) }
-			visibility { visibility }
-			onValueChange { _, _ -> if (visibility()) lambdaTheme.value = lightTheme.toLambdaPalette() }
+			onValueChange { _, _ ->
+				val visible = themeMode == ThemeMode.Light || (themeMode == ThemeMode.Auto && !isSystemDark)
+				if (visible) lambdaTheme.value = lightTheme.toLambdaPalette()
+			}
 		}
 	}
 

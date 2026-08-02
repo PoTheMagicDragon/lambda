@@ -42,6 +42,14 @@ import org.jetbrains.skia.FramebufferFormat
 import org.jetbrains.skia.Surface
 import org.jetbrains.skia.SurfaceColorFormat
 import org.jetbrains.skia.SurfaceOrigin
+import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.textures.GpuTexture
+import com.mojang.blaze3d.textures.GpuTextureView
+import com.mojang.blaze3d.textures.TextureFormat
+import net.minecraft.client.gl.GlBackend
+import net.minecraft.client.texture.GlTexture
+import java.util.OptionalInt
+import java.util.OptionalDouble
 import org.lwjgl.opengl.GL11
 import org.lwjgl.opengl.GL12
 import org.lwjgl.opengl.GL13
@@ -65,6 +73,11 @@ object ComposeRenderer {
     private var mouseX = 0f
     private var mouseY = 0f
     private var buttonsDown = 0
+
+    private var guiFboTexture: GpuTexture? = null
+    private var guiFboView: GpuTextureView? = null
+    private var guiFboWidth = 0
+    private var guiFboHeight = 0
 
     fun initialize() {
         if (initialized) return
@@ -110,17 +123,49 @@ object ComposeRenderer {
 
             directContext.resetGLAll()
 
+            if (guiFboTexture == null || guiFboWidth != width || guiFboHeight != height) {
+                guiFboView?.close()
+                guiFboTexture?.close()
+
+                val gpuDevice = RenderSystem.getDevice()
+                guiFboTexture = gpuDevice.createTexture(
+                    { "Lambda GUI Glow FBO" },
+                    15,
+                    TextureFormat.RGBA8,
+                    width,
+                    height,
+                    1,
+                    1
+                )
+                guiFboView = gpuDevice.createTextureView(guiFboTexture)
+                guiFboWidth = width
+                guiFboHeight = height
+            }
+
+            val gpuDevice = RenderSystem.getDevice()
+            gpuDevice.createCommandEncoder().createRenderPass(
+                { "Clear GUI FBO" },
+                guiFboView,
+                OptionalInt.of(0x00000000), // Clear with transparent
+                null,
+                OptionalDouble.empty()
+            )?.close()
+
+            val guiFboId = (guiFboTexture as GlTexture).getOrCreateFramebuffer((gpuDevice as GlBackend).bufferManager, null)
+
+            val originalFbId = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING)
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, guiFboId)
+
             if (currentWidth != width || currentHeight != height) {
                 previousRenderTarget?.close()
                 surface?.close()
 
-                val fbId = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING)
                 val currentTarget =
                     BackendRenderTarget.makeGL(
                         width, height,
                         sampleCnt = 0,
                         stencilBits = 8,
-                        fbId,
+                        guiFboId,
                         FramebufferFormat.GR_GL_RGBA8
                     ).also { target ->
                         previousRenderTarget = target
@@ -147,6 +192,18 @@ object ComposeRenderer {
 
             surface?.flushAndSubmit()
             directContext.flush()
+
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, originalFbId)
+
+            guiFboView?.let { view ->
+                GuiGlowRenderer.renderGlow(
+                    view,
+                    if (Style.enableGlow) Style.glowRadius else 0f,
+                    if (Style.enableGlow) Style.glowIntensity else 0f,
+                    Style.glowColor1,
+                    Style.glowColor2
+                )
+            }
         } catch (e: Exception) {
             LOG.error("Error rendering Compose UI", e)
         } finally {

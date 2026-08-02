@@ -49,7 +49,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
@@ -122,16 +121,28 @@ fun CategoryPanel(
                         label = "SettingsAnimation"
                     )
 
-                    val slideOffset = (1f - transitionProgress) * -50f
-
                     Box(
                         modifier = Modifier
                             .wrapContentSize(unbounded = true, align = Alignment.TopStart)
                             .offset { 
                                 if (transitionProgress == 0f) IntOffset(-9999, -9999) 
-                                else IntOffset(99.dp.roundToPx() + slideOffset.roundToInt(), yOffset.roundToInt()) 
+                                else IntOffset(99.dp.roundToPx(), yOffset.roundToInt()) 
                             }
-                            .graphicsLayer { alpha = transitionProgress }
+                            .clipToBounds()
+                            .layout { measurable, constraints ->
+                                val placeable = measurable.measure(constraints)
+                                val panelHeight = panelCoordinates?.size?.height?.toFloat() ?: 9999f
+                                val originalBottom = yOffset + placeable.height
+                                val targetBottom = minOf(originalBottom, panelHeight)
+                                val animatedBottom = targetBottom + (originalBottom - targetBottom) * transitionProgress
+                                
+                                val currentHeight = maxOf(0, (animatedBottom - yOffset).roundToInt())
+                                val currentWidth = (placeable.width * transitionProgress).roundToInt()
+                                
+                                layout(currentWidth, currentHeight) {
+                                    placeable.place(0, 0)
+                                }
+                            }
                     ) {
                         Box(
                             modifier = Modifier
@@ -169,7 +180,7 @@ fun CategoryPanel(
                     .onGloballyPositioned { panelCoordinates = it }
                     .width(100.dp)
                     .pointerInput(Unit) {
-                        awaitEachGesture {
+                        awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
                                 if (event.type == PointerEventType.Press) {
@@ -195,16 +206,14 @@ fun CategoryPanel(
                             )
                         }
                         .pointerInput(Unit) {
-                            awaitEachGesture {
+                            awaitPointerEventScope {
                                 while (true) {
                                     val event = awaitPointerEvent(PointerEventPass.Main)
                                     if (event.type == PointerEventType.Press) {
                                         if (event.buttons.isSecondaryPressed) {
-                                            scope.launch {
-                                                expanded = !expanded
-                                                if (!expanded) {
-                                                    onSettingsModuleChange(null)
-                                                }
+                                            expanded = !expanded
+                                            if (!expanded) {
+                                                onSettingsModuleChange(null)
                                             }
                                             event.changes.forEach { it.consume() }
                                         }

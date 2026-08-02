@@ -300,4 +300,23 @@ object LambdaRenderPipelines : Loadable {
 				)
 				.build()
 		)
+
+	val GUI_GLOW: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/gui_glow"))
+				.withVertexShader(Identifier.of("lambda", "core/gui_glow"))
+				.withFragmentShader(Identifier.of("lambda", "core/gui_glow"))
+				.withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+				.withSampler("Sampler0")
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					VertexFormats.POSITION_TEXTURE,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
 }
