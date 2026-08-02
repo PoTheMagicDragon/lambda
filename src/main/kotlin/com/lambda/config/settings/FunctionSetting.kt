@@ -48,7 +48,7 @@ class FunctionSetting<T : () -> R, R>(
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(horizontal = 4.dp, vertical = 2.dp),
+				.padding(horizontal = 4.dp, vertical = 1.dp),
 			contentAlignment = Alignment.Center
 		) {
 			Button(

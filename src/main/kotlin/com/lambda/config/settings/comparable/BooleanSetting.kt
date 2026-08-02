@@ -17,11 +17,13 @@
 
 package com.lambda.config.settings.comparable
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,6 +38,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,6 +77,7 @@ class BooleanSetting(
 				.clickable { value = !stateValue }
 				.padding(horizontal = 4.dp)
 		) {
+			val checkColor = colorScheme.onPrimary
 			Box(
 				modifier = Modifier
 					.size(10.dp)
@@ -79,12 +86,24 @@ class BooleanSetting(
 				contentAlignment = Alignment.Center
 			) {
 				if (stateValue) {
-					Text(
-						text = "✔",
-						color = Color.White,
-						fontSize = 8.sp,
-						modifier = Modifier.padding(bottom = 1.dp)
-					)
+					// Drawn rather than a "✔" glyph: at this size the text box overflows the
+					// 10dp clip and the mark disappears, and the glyph is font dependent.
+					Canvas(modifier = Modifier.fillMaxSize()) {
+						val side = size.minDimension
+						drawPath(
+							path = Path().apply {
+								moveTo(side * 0.22f, side * 0.52f)
+								lineTo(side * 0.42f, side * 0.72f)
+								lineTo(side * 0.78f, side * 0.28f)
+							},
+							color = checkColor,
+							style = Stroke(
+								width = side * 0.16f,
+								cap = StrokeCap.Round,
+								join = StrokeJoin.Round
+							)
+						)
+					}
 				}
 			}
 			Text(

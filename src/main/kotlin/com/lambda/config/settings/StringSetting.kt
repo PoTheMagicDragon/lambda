@@ -70,7 +70,7 @@ class StringSetting(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 0.dp)
+                .padding(horizontal = 4.dp, vertical = 1.dp)
         ) {
             Text(
                 text = name,

@@ -93,7 +93,7 @@ abstract class NumericSetting<T>(
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(horizontal = 4.dp, vertical = 0.dp)
+				.padding(horizontal = 4.dp, vertical = 1.dp)
 				.height(16.dp)
 				.background(Color(0xFF333333))
 				.pointerInput(Unit) {

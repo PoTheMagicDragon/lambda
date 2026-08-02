@@ -77,7 +77,7 @@ class EnumSetting<T : Enum<T>>(
 
         Column(
             modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 0.dp)
+                .padding(horizontal = 4.dp, vertical = 1.dp)
         ) {
             Box(
                 modifier = Modifier
