@@ -20,6 +20,7 @@ package com.lambda.newui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -64,6 +66,14 @@ fun ModuleCard(
     )
     val textColor = if (enabled) colors.onSecondaryContainer else colors.onSurfaceVariant
 
+    // The open settings panel is marked with an outline so the card keeps showing
+    // its own enabled/disabled colouring.
+    val outlineColor by animateColorAsState(
+        targetValue = if (isSettingsOpen) colors.primary else Color.Transparent,
+        animationSpec = spring(),
+        label = "moduleCardOutline"
+    )
+
     val currentOnRightClick by rememberUpdatedState(onRightClick)
     val scope = rememberCoroutineScope()
 
@@ -71,7 +81,11 @@ fun ModuleCard(
         modifier = Modifier
             .onGloballyPositioned { onPositionChange(it) }
             .fillMaxWidth()
-            .background(if (isSettingsOpen) colors.primaryContainer else backgroundColor)
+            .background(backgroundColor)
+            // The card spans the panel's full width, so an un-inset outline would put its
+            // side edges underneath the panel's own border. Inset the outline, not the fill.
+            .padding(horizontal = 1.dp)
+            .border(1.dp, outlineColor)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -86,13 +100,13 @@ fun ModuleCard(
                 }
             }
             .clickable { module.toggle() }
-            .padding(horizontal = 5.dp, vertical = 2.dp)
+            .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
         Text(
             text = module.name,
             fontSize = 9.sp,
             lineHeight = 9.sp,
-            color = if (isSettingsOpen) colors.onPrimaryContainer else textColor,
+            color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             style = TextStyle(shadow = Shadow(color = colors.scrim, offset = Offset(2f, 2f)))
