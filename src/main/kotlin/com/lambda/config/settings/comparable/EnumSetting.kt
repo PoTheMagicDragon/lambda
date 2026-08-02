@@ -29,10 +29,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +57,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.newui.theme.Radius
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
@@ -78,11 +79,13 @@ class EnumSetting<T : Enum<T>>(
         Column(
             modifier = Modifier.fillMaxWidth()
                 .padding(horizontal = 4.dp, vertical = 1.dp)
+                // Clipped as a whole so the field and its open list read as one control.
+                .clip(RoundedCornerShape(Radius.Small))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(16.dp)
+                    .heightIn(min = 16.dp)
                     .background(Color(0xFF442233))
                     .clickable { expanded = !expanded },
                 contentAlignment = Alignment.CenterStart
@@ -91,7 +94,7 @@ class EnumSetting<T : Enum<T>>(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .padding(horizontal = 4.dp)
                 ) {
                     Text(
@@ -132,13 +135,12 @@ class EnumSetting<T : Enum<T>>(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(16.dp)
+                                .heightIn(min = 16.dp)
                                 .clickable {
                                     value = enumValue
                                     expanded = false
                                 }
                                 .background(if (stateValue == enumValue) Color(0xFF552233) else Color.Transparent)
-                                .clip(shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
                                 .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {

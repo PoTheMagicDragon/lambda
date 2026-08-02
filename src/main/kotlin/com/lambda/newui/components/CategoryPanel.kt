@@ -26,11 +26,13 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,10 +68,17 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newui.state.LambdaState.observe
+import com.lambda.newui.theme.Radius
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private const val GRID_SIZE_DP = 4f
+
+/** The settings panel never gets narrower than this, even for short labels. */
+private val SETTINGS_MIN_WIDTH = 150.dp
+
+/** ...nor wider than this, so one long label cannot swallow the screen. */
+private val SETTINGS_MAX_WIDTH = 300.dp
 
 private fun snapToGrid(value: Float, gridSize: Float) =
     (value / gridSize).roundToInt() * gridSize
@@ -93,8 +102,14 @@ fun CategoryPanel(
     var panelCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(2.dp)
-    val settingsShape = RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp)
+    val shape = RoundedCornerShape(Radius.ExtraSmall)
+    // Square only where the panel butts against the category list, so the seam reads as a join.
+    val settingsShape = RoundedCornerShape(
+        topStart = 0.dp,
+        topEnd = Radius.Large,
+        bottomEnd = Radius.Large,
+        bottomStart = Radius.Large
+    )
 
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
@@ -146,7 +161,11 @@ fun CategoryPanel(
                     ) {
                         Box(
                             modifier = Modifier
-                                .width(150.dp)
+                                // The panel widens to the longest label rather than wrapping it.
+                                // widthIn clamps first, so width() resolves to the content's max
+                                // intrinsic width coerced into that range.
+                                .widthIn(min = SETTINGS_MIN_WIDTH, max = SETTINGS_MAX_WIDTH)
+                                .width(IntrinsicSize.Max)
                                 .clip(settingsShape)
                                 .background(colors.surfaceVariant)
                                 .border(1.dp, colors.outline, settingsShape)

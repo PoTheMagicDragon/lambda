@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +52,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.newui.theme.Radius
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -73,7 +74,7 @@ class BooleanSetting(
 			horizontalArrangement = Arrangement.spacedBy(4.dp),
 			modifier = Modifier
 				.fillMaxWidth()
-				.height(16.dp)
+				.heightIn(min = 16.dp)
 				.clickable { value = !stateValue }
 				.padding(horizontal = 4.dp)
 		) {
@@ -81,7 +82,7 @@ class BooleanSetting(
 			Box(
 				modifier = Modifier
 					.size(10.dp)
-					.clip(RoundedCornerShape(2.dp))
+					.clip(RoundedCornerShape(Radius.ExtraSmall))
 					.background(if (stateValue) colorScheme.primary else Color(0xFF442233)),
 				contentAlignment = Alignment.Center
 			) {

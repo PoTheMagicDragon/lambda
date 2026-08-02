@@ -25,10 +25,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -57,6 +57,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.newui.theme.Radius
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import java.awt.Color as JColor
@@ -85,7 +86,7 @@ class ColorSetting(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(16.dp)
+                    .heightIn(min = 16.dp)
                     .clickable { expanded = !expanded }
             ) {
                 Text(
@@ -102,7 +103,7 @@ class ColorSetting(
                 Box(
                     modifier = Modifier
                         .size(14.dp, 10.dp)
-                        .clip(RoundedCornerShape(2.dp))
+                        .clip(RoundedCornerShape(Radius.ExtraSmall))
                         .background(Color(stateValue.red, stateValue.green, stateValue.blue, stateValue.alpha))
                 )
             }
@@ -121,12 +122,17 @@ class ColorSetting(
     @Composable
     private fun ColorSlider(label: String, colorValue: Int, onValueChange: (Int) -> Unit) {
         val fraction = colorValue / 255f
+        val fillColor = MaterialTheme.colorScheme.primary
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 1.dp)
-                .height(12.dp)
+                .heightIn(min = 12.dp)
+                .clip(RoundedCornerShape(Radius.Small))
                 .background(Color(0xFF333333))
+                .drawBehind {
+                    drawRect(color = fillColor, size = Size(size.width * fraction, size.height))
+                }
                 .pointerInput(Unit) {
                     detectDragGestures { change, _ ->
                         val percent = (change.position.x / size.width).coerceIn(0f, 1f)
@@ -141,14 +147,8 @@ class ColorSetting(
                 },
             contentAlignment = Alignment.CenterStart
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(fraction)
-                    .background(MaterialTheme.colorScheme.primary)
-            )
             Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

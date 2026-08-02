@@ -30,10 +30,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme.colorScheme
@@ -46,10 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lambda.config.automation.AutomationConfig
@@ -58,6 +59,7 @@ import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.modules.client.AutoUpdater
+import com.lambda.newui.theme.Radius
 
 /**
  * Renders the "Module Settings" and "Automation Config" sections that used to sit
@@ -109,6 +111,7 @@ fun ModuleConfigSettings(module: Module) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(20.dp),
+                shape = RoundedCornerShape(Radius.Small),
                 contentPadding = PaddingValues(0.dp)
             ) {
                 Text(text = "Reset", fontSize = 9.sp)
@@ -130,11 +133,17 @@ private fun AutomationConfigSelector(
     val options = listOf(module.defaultAutomationConfig) +
         UserAutomationCategory.configs.filterIsInstance<AutomationConfig>()
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 1.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 1.dp)
+            // Clipped as a whole so the field and its open list read as one control.
+            .clip(RoundedCornerShape(Radius.Small))
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(16.dp)
+                .heightIn(min = 16.dp)
                 .background(colorScheme.surfaceContainerHigh)
                 .clickable { expanded = !expanded },
             contentAlignment = Alignment.CenterStart
@@ -143,14 +152,12 @@ private fun AutomationConfigSelector(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .padding(horizontal = 4.dp)
             ) {
                 Text(
                     text = "Linked Config: ${linked.name}",
                     color = colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                     style = TextStyle(
                         fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
@@ -187,7 +194,7 @@ private fun AutomationConfigSelector(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(16.dp)
+                            .heightIn(min = 16.dp)
                             .clickable {
                                 expanded = false
                                 if (!selected) onSelect(option)
@@ -199,8 +206,6 @@ private fun AutomationConfigSelector(
                         Text(
                             text = option.name,
                             color = if (selected) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                             style = TextStyle(
                                 fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
                                     alignment = LineHeightStyle.Alignment.Center,

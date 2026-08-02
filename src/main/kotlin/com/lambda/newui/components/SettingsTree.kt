@@ -33,7 +33,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
 import com.lambda.config.entries.Setting
+import com.lambda.newui.theme.Radius
 
 /**
  * Collapsible, labeled container used for setting groups and for the
@@ -80,7 +81,7 @@ fun SettingsGroup(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(16.dp)
+                .heightIn(min = 16.dp)
                 .clickable { expanded = !expanded }
                 .padding(horizontal = 4.dp)
         ) {
@@ -171,7 +172,7 @@ fun SettingsTree(layer: EntryLayer<Setting<*>>) {
                 var selectedTabIndex by remember { mutableStateOf(0) }
 
                 val colors = MaterialTheme.colorScheme
-                val barShape = RoundedCornerShape(4.dp)
+                val barShape = RoundedCornerShape(Radius.Small)
 
                 Column {
                     // A TabRow splits its width evenly, which squeezes longer names down to a
