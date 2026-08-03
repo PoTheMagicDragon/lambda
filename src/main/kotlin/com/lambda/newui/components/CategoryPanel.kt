@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -57,17 +58,23 @@ import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.lambda.Lambda.mc
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newui.frosted
+import com.lambda.newui.ComposeRenderer
 import com.lambda.newui.frostedBackground
 import com.lambda.newui.state.LambdaState.observe
 import com.lambda.newui.theme.Radius
@@ -102,6 +109,27 @@ fun CategoryPanel(
 
     val yOffsets = remember { androidx.compose.runtime.mutableStateMapOf<String, Float>() }
     var panelCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    // Kept as plain Floats so dragging the panel actually recomposes the settings panels;
+    // positionInRoot() on the cached coordinates would silently go stale.
+    var panelWindowX by remember { mutableStateOf(0f) }
+    var panelWindowY by remember { mutableStateOf(0f) }
+
+    // Root coordinates equal framebuffer pixels, so these are the screen bounds the settings
+    // panels have to stay inside. The height must stay finite: it bounds a scrollable
+    // container, and an infinite maximum height makes verticalScroll throw.
+    val sceneSize = ComposeRenderer.sceneSize.value
+    val screenHeightPx = sceneSize.height.takeIf { it > 0 }
+        ?: mc.window.framebufferHeight.coerceAtLeast(1)
+    val screenWidth = (sceneSize.width.takeIf { it > 0 }
+        ?: mc.window.framebufferWidth.coerceAtLeast(1)).toFloat()
+    val screenHeight = screenHeightPx.toFloat()
+
+    val screenDensity = LocalDensity.current
+    val maxSettingsHeight = with(screenDensity) { screenHeightPx.toDp() }
+    // Anchors overlap the category list by 1dp on the joining edge, so the list's own border
+    // covers the seam instead of leaving a double line.
+    val rightAnchor = with(screenDensity) { 99.dp.toPx() }
+    val leftAnchor = with(screenDensity) { 1.dp.toPx() }
 
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Radius.ExtraSmall)
@@ -112,6 +140,15 @@ fun CategoryPanel(
         bottomEnd = Radius.Large,
         bottomStart = Radius.Large
     )
+    // Mirrored for a panel sitting left of the category list: the seam moves to its top right.
+    val flippedSettingsShape = RoundedCornerShape(
+        topStart = Radius.Large,
+        topEnd = 0.dp,
+        bottomEnd = Radius.Large,
+        bottomStart = Radius.Large
+    )
+    // Pulled off the card to fit on screen, so there is no seam left to square off.
+    val liftedSettingsShape = RoundedCornerShape(Radius.Large)
 
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
@@ -138,27 +175,61 @@ fun CategoryPanel(
                         label = "SettingsAnimation"
                     )
 
+                    var contentSize by remember { mutableStateOf(IntSize.Zero) }
+
+                    // Growing down from the card would run off the bottom of the screen, so lift
+                    // the panel by the overflow to pin its bottom edge to the screen instead. The
+                    // lift stops at the top of the screen; past that the content scrolls.
+                    val anchorInWindow = panelWindowY + yOffset
+                    val overflow = (anchorInWindow + contentSize.height - screenHeight).coerceAtLeast(0f)
+                    val lift = overflow.coerceAtMost(anchorInWindow.coerceAtLeast(0f))
+                    val panelTop = yOffset - lift
+
+                    // Opening to the right would run off that edge of the screen, so flip to the
+                    // other side of the category list - but only when the panel actually fits
+                    // there, otherwise it would just run off the left edge instead.
+                    val flipped = contentSize.width > 0 &&
+                        panelWindowX + rightAnchor + contentSize.width > screenWidth &&
+                        panelWindowX + leftAnchor - contentSize.width >= 0f
+
+                    val panelShape = when {
+                        // Lifted off the card, so neither side has a seam left to square off.
+                        lift > 0.5f -> liftedSettingsShape
+                        flipped -> flippedSettingsShape
+                        else -> settingsShape
+                    }
+
                     Box(
                         modifier = Modifier
                             .zIndex(if (isVisible) 1f else 0f)
                             .wrapContentSize(unbounded = true, align = Alignment.TopStart)
-                            .offset { 
-                                if (transitionProgress == 0f) IntOffset(-9999, -9999) 
-                                else IntOffset(99.dp.roundToPx(), yOffset.roundToInt()) 
+                            .offset {
+                                if (transitionProgress == 0f) return@offset IntOffset(-9999, -9999)
+                                // A flipped panel keeps its right edge pinned to the seam, so it
+                                // opens outwards from the list rather than sliding in from the
+                                // far side. Mirrors the width the layout below settles on.
+                                val x = if (flipped) {
+                                    leftAnchor - contentSize.width * transitionProgress
+                                } else {
+                                    rightAnchor
+                                }
+                                IntOffset(x.roundToInt(), panelTop.roundToInt())
                             }
                             .clipToBounds()
                             .layout { measurable, constraints ->
                                 val placeable = measurable.measure(constraints)
                                 val panelHeight = panelCoordinates?.size?.height?.toFloat() ?: 9999f
-                                val originalBottom = yOffset + placeable.height
+                                val originalBottom = panelTop + placeable.height
                                 val targetBottom = minOf(originalBottom, panelHeight)
                                 val animatedBottom = targetBottom + (originalBottom - targetBottom) * transitionProgress
-                                
-                                val currentHeight = maxOf(0, (animatedBottom - yOffset).roundToInt())
+
+                                val currentHeight = maxOf(0, (animatedBottom - panelTop).roundToInt())
                                 val currentWidth = (placeable.width * transitionProgress).roundToInt()
-                                
+
                                 layout(currentWidth, currentHeight) {
-                                    placeable.place(0, 0)
+                                    // Reveal from the seam: the right edge when flipped, so the
+                                    // clipped-away part is the one furthest from the list.
+                                    placeable.place(if (flipped) currentWidth - placeable.width else 0, 0)
                                 }
                             }
                     ) {
@@ -168,10 +239,17 @@ fun CategoryPanel(
                                 // widthIn clamps first, so width() resolves to the content's max
                                 // intrinsic width coerced into that range.
                                 .widthIn(min = SETTINGS_MIN_WIDTH, max = SETTINGS_MAX_WIDTH)
+                                // Never taller than the screen; the content scrolls beyond that.
+                                // Ahead of width() on purpose: wrapContentSize(unbounded) hands
+                                // down an infinite maximum height, and width(IntrinsicSize.Max)
+                                // forwards it into maxIntrinsicWidth(), where the scrollable
+                                // content would reject it. Clamping first keeps both passes finite.
+                                .heightIn(max = maxSettingsHeight)
                                 .width(IntrinsicSize.Max)
-                                .clip(settingsShape)
-                                .frostedBackground(colors.surfaceVariant, settingsShape)
-                                .border(1.dp, colors.outline, settingsShape)
+                                .onSizeChanged { contentSize = it }
+                                .clip(panelShape)
+                                .frostedBackground(colors.surfaceVariant, panelShape)
+                                .border(1.dp, colors.outline, panelShape)
                                 .pointerInput(isVisible) {
                                     if (isVisible) {
                                         awaitEachGesture {
@@ -186,7 +264,11 @@ fun CategoryPanel(
                                 }
                                 .padding(8.dp)
                         ) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                            ) {
                                 SettingsTree(module.settingLayers)
                                 ModuleConfigSettings(module)
                             }
@@ -200,7 +282,12 @@ fun CategoryPanel(
         key("MainPanel") {
             Column(
                 modifier = Modifier
-                    .onGloballyPositioned { panelCoordinates = it }
+                    .onGloballyPositioned {
+                        panelCoordinates = it
+                        val root = it.positionInRoot()
+                        panelWindowX = root.x
+                        panelWindowY = root.y
+                    }
                     .width(100.dp)
                     .pointerInput(Unit) {
                         awaitPointerEventScope {

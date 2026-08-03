@@ -17,6 +17,7 @@
 
 package com.lambda.newui
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
@@ -70,6 +71,16 @@ object ComposeRenderer {
     private var currentWidth = 0
     private var currentHeight = 0
     private var initialized = false
+
+    /**
+     * The scene's size in framebuffer pixels, which is also the coordinate space
+     * [androidx.compose.ui.layout.LayoutCoordinates.positionInRoot] reports in. Observable so
+     * layouts that clamp themselves to the screen react to a resize.
+     *
+     * `LocalWindowInfo.containerSize` cannot be used for this: no platform window backs a
+     * [CanvasLayersComposeScene], so it stays [IntSize.Zero].
+     */
+    val sceneSize = mutableStateOf(IntSize.Zero)
 
     // Pending input events
     private var mouseX = 0f
@@ -202,6 +213,8 @@ object ComposeRenderer {
 
                 scene?.density = Density(height / 720f)
                 scene?.size = IntSize(width, height)
+                // Set before the scene renders below, so this frame's composition sees it.
+                sceneSize.value = IntSize(width, height)
             }
 
             val canvas = surface?.canvas ?: return
