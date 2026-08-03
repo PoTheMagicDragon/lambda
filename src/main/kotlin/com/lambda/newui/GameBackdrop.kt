@@ -45,9 +45,13 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.dp
 import com.lambda.module.modules.client.Style
 import com.lambda.newui.state.LambdaState.observe
+import org.jetbrains.skia.BlendMode
 import org.jetbrains.skia.FilterTileMode
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.ImageFilter
+import org.jetbrains.skia.Rect
+import org.jetbrains.skia.Canvas as SkCanvas
+import org.jetbrains.skia.Paint as SkPaint
 
 object GameBackdrop {
     /**
@@ -74,8 +78,9 @@ fun Color.frosted(): Color {
 }
 
 /**
- * Window background that shows the game blurred behind the window (frosted glass), falling
- * back to a plain [background] when blur is disabled or no game snapshot is available.
+ * Window background that shows the game *and any windows already drawn beneath this one*
+ * blurred behind the window (frosted glass), falling back to a plain [background] when blur is
+ * disabled or no game snapshot is available.
  *
  * The blur samples the real framebuffer pixels around the window edge, so the glass does not
  * darken toward its borders the way blurring only the clipped region would.
@@ -96,12 +101,8 @@ fun Modifier.frostedBackground(color: Color, shape: Shape = RectangleShape): Mod
                 drawOutline(outline, color)
                 return@drawBehind
             }
-            // Minecraft's framebuffer carries junk alpha, which the snapshot inherits. Drawing
-            // onto an opaque black base makes the window fully opaque with the snapshot's rgb
-            // kept as-is (premultiplied SrcOver), so windows below cannot ghost through.
-            drawOutline(outline, Color.Black)
             withOutlineClip(outline) {
-                drawGameBlurred(game, windowOrigin, blurRadius)
+                drawFrostedGlass(game, windowOrigin, blurRadius)
             }
             drawOutline(outline, color.copy(alpha = color.alpha * blurOpacity))
         }
@@ -121,22 +122,53 @@ private inline fun DrawScope.withOutlineClip(outline: Outline, crossinline block
 }
 
 /**
- * Draws the fullscreen game snapshot through a blur filter, shifted so the window's clip
- * lands on the framebuffer pixels directly behind it. Root coordinates equal framebuffer
- * pixels because the scene is sized to the framebuffer.
+ * Replaces the clipped region with frosted glass: the windows already drawn beneath this one,
+ * blurred, over the blurred game, over opaque black.
+ *
+ * The lower windows are blurred by a *backdrop* layer, which filters the destination pixels the
+ * scene has already drawn. Those pixels are only readable at [SkCanvas.saveLayer] time, so the
+ * layer has to be built downward — the game and the black base go in afterwards with
+ * [BlendMode.DST_OVER], which slides them underneath the blurred content instead of over it.
+ * Skia samples the backdrop from the whole device rather than just the layer, so a window sitting
+ * just outside this one's edge still bleeds in and the glass does not darken at its borders.
+ *
+ * The layer is composited back with [BlendMode.SRC] so the finished glass *replaces* the region:
+ * blending it would mix the lower windows in a second time, and the sharp originals would show
+ * through the blur.
  */
-private fun DrawScope.drawGameBlurred(game: Image, windowOrigin: Offset, radiusDp: Float) {
+private fun DrawScope.drawFrostedGlass(game: Image, windowOrigin: Offset, radiusDp: Float) {
     drawIntoCanvas { canvas ->
         val native = canvas.nativeCanvas
         val sigma = radiusDp.dp.toPx() / 2f
         ImageFilter.makeBlur(sigma, sigma, FilterTileMode.CLAMP).use { blur ->
-            org.jetbrains.skia.Paint().use { paint ->
+            SkPaint().use { layerPaint ->
+                layerPaint.blendMode = BlendMode.SRC
+                native.saveLayer(
+                    SkCanvas.SaveLayerRec(Rect.makeWH(size.width, size.height), layerPaint, blur)
+                )
+            }
+            SkPaint().use { paint ->
+                paint.blendMode = BlendMode.DST_OVER
                 paint.imageFilter = blur
+                // Root coordinates equal framebuffer pixels because the scene is sized to the
+                // framebuffer, so shifting by the window origin lands the fullscreen snapshot on
+                // the pixels directly behind this window.
                 native.save()
                 native.translate(-windowOrigin.x, -windowOrigin.y)
                 native.drawImage(game, 0f, 0f, paint)
                 native.restore()
             }
+            // Minecraft's framebuffer carries junk alpha, which the snapshot inherits. An opaque
+            // black base keeps the snapshot's rgb as-is while forcing alpha to 1, so the glass is
+            // fully opaque and the unblurred framebuffer underneath cannot ghost back through it.
+            SkPaint().use { paint ->
+                paint.blendMode = BlendMode.DST_OVER
+                paint.color = BLACK
+                native.drawPaint(paint)
+            }
+            native.restore()
         }
     }
 }
+
+private const val BLACK = 0xFF000000.toInt()
