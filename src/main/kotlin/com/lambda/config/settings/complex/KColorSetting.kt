@@ -19,6 +19,7 @@ package com.lambda.config.settings.complex
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
@@ -28,6 +29,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.newui.components.ColorSettingGui
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -41,7 +43,20 @@ class KColorSetting(
 ) : Setting<Color>(name, description, defaultValue, layer, config, visibility) {
 	@ExperimentalMaterial3Api
 	@Composable
-	override fun gui() {}
+	override fun gui() {
+		val stateValue by observeState()
+		
+		ColorSettingGui(
+			name = name,
+			red = (stateValue.red * 255).toInt(),
+			green = (stateValue.green * 255).toInt(),
+			blue = (stateValue.blue * 255).toInt(),
+			alpha = (stateValue.alpha * 255).toInt(),
+			onColorChange = { r, g, b, a ->
+				value = Color(r / 255f, g / 255f, b / 255f, a / 255f)
+			}
+		)
+	}
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(integer("Red", 0, 255)) { red ->

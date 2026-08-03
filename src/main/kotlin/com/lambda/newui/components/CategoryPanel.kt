@@ -140,6 +140,7 @@ fun CategoryPanel(
 
                     Box(
                         modifier = Modifier
+                            .zIndex(if (isVisible) 1f else 0f)
                             .wrapContentSize(unbounded = true, align = Alignment.TopStart)
                             .offset { 
                                 if (transitionProgress == 0f) IntOffset(-9999, -9999) 
