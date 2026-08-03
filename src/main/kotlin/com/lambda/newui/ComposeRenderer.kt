@@ -122,7 +122,12 @@ object ComposeRenderer {
         LOG.info("Compose renderer initialized")
     }
 
-    fun render() {
+    /**
+     * @param composite whether to draw the finished GUI onto Minecraft's framebuffer. Pass
+     *   false to warm the pipeline up - the scene still renders into the offscreen buffer,
+     *   compiling Skia's shaders and building its glyph atlas, but nothing reaches the screen.
+     */
+    fun render(composite: Boolean = true) {
         if (!initialized || scene == null) return
 
         // Throttled internally, and only reached while the GUI is open, so the OS theme is
@@ -225,6 +230,8 @@ object ComposeRenderer {
             directContext.flush()
 
             GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, originalFbId)
+
+            if (!composite) return
 
             guiFboView?.let { view ->
                 GuiGlowRenderer.renderGlow(
