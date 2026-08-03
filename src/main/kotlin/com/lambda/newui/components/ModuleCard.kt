@@ -46,7 +46,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lambda.module.Module
-import com.lambda.newui.frosted
 import com.lambda.newui.state.LambdaState.observeEnabled
 import kotlinx.coroutines.launch
 
@@ -61,7 +60,7 @@ fun ModuleCard(
     val colors = MaterialTheme.colorScheme
 
     val backgroundColor by animateColorAsState(
-        targetValue = if (enabled) colors.secondaryContainer.frosted() else Color.Transparent,
+        targetValue = if (enabled) colors.secondaryContainer else Color.Transparent,
         animationSpec = spring(),
         label = "moduleCardBg"
     )

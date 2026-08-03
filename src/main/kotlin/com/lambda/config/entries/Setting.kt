@@ -19,10 +19,6 @@ package com.lambda.config.entries
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import com.lambda.Lambda.mapper
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -141,19 +137,6 @@ abstract class Setting<T>(
 		}
 		if (!silent) ConfigCommand.info(resetMessage(value, originalCore.defaultValue))
 		value = originalCore.defaultValue
-	}
-
-	@Composable
-	protected fun observeState(): State<T> {
-		val state = remember { mutableStateOf(value) }
-		DisposableEffect(this) {
-			val listener = ValueListener<T>(true) { _, to ->
-				state.value = to
-			}
-			listeners.add(listener)
-			onDispose { listeners.remove(listener) }
-		}
-		return state
 	}
 
 	fun restoreOriginalCore() {

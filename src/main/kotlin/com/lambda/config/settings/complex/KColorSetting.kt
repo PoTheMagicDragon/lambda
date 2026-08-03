@@ -30,6 +30,7 @@ import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.newui.components.ColorSettingGui
+import com.lambda.newui.state.LambdaState.observe
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -44,7 +45,7 @@ class KColorSetting(
 	@ExperimentalMaterial3Api
 	@Composable
 	override fun gui() {
-		val stateValue by observeState()
+		val stateValue by this.observe()
 		
 		ColorSettingGui(
 			name = name,

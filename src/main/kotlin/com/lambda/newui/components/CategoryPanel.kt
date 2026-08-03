@@ -45,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,7 +74,6 @@ import com.lambda.Lambda.mc
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
-import com.lambda.newui.frosted
 import com.lambda.newui.ComposeRenderer
 import com.lambda.newui.frostedBackground
 import com.lambda.newui.state.LambdaState.observe
@@ -150,7 +150,7 @@ fun CategoryPanel(
     // Pulled off the card to fit on screen, so there is no seam left to square off.
     val liftedSettingsShape = RoundedCornerShape(Radius.Large)
 
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -305,7 +305,7 @@ fun CategoryPanel(
             ) {
                 Row(
                     modifier = Modifier
-                        .background(colors.primaryContainer.frosted())
+                        .background(colors.primaryContainer)
                         .fillMaxWidth()
                         .pointerInput(Unit) {
                             detectDragGestures(

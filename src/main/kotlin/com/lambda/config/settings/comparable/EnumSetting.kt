@@ -57,6 +57,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.newui.state.LambdaState.observe
 import com.lambda.newui.theme.Radius
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
@@ -73,7 +74,7 @@ class EnumSetting<T : Enum<T>>(
     @ExperimentalMaterial3Api
     @Composable
     override fun gui() {
-        val stateValue by observeState()
+        val stateValue by this.observe()
         var expanded by remember { mutableStateOf(false) }
 
         Column(

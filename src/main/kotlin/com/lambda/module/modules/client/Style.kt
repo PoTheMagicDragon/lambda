@@ -73,7 +73,7 @@ object Style : Module(
 	// Kept as Setting references (not delegated) so Compose can observe() them.
 	val enableBlur = setting("Enable Blur", true, "Blurs the game behind windows for a frosted-glass look")
 	val blurRadius = setting("Blur Radius", 12f, 1f..32f, 1f, "Strength of the frosted-glass blur")
-	val blurOpacity = setting("Blur Opacity", 0.7f, 0f..1f, 0.05f, "How strongly the surface color tints the blurred backdrop")
+
 
 	@Group(DARK_THEME_GROUP) private val darkTheme: LambdaColorSettings by configBlock(
 		LambdaColorSettings(

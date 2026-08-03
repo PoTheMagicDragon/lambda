@@ -57,7 +57,6 @@ import androidx.compose.ui.unit.sp
 import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
 import com.lambda.config.entries.Setting
-import com.lambda.newui.frosted
 import com.lambda.newui.theme.Radius
 
 /**
@@ -185,7 +184,7 @@ fun SettingsTree(layer: EntryLayer<Setting<*>>) {
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp, vertical = 1.dp)
                             .clip(barShape)
-                            .background(colors.surfaceContainer.frosted())
+                            .background(colors.surfaceContainer)
                             .border(1.dp, colors.outlineVariant, barShape)
                     ) {
                         tabs.forEachIndexed { index, tabLayer ->

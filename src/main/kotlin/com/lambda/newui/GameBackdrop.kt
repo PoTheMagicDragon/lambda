@@ -18,7 +18,6 @@
 package com.lambda.newui
 
 import androidx.compose.foundation.background
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,19 +62,7 @@ object GameBackdrop {
     val frame: MutableState<Image?> = mutableStateOf(null, neverEqualPolicy())
 }
 
-/**
- * Blur-aware fill color for content drawn on top of a [frostedBackground]: scales the color's
- * alpha by the blur opacity while blur is enabled so the glass reads through content fills,
- * and returns the color untouched when blur is off. Apply to fills only — text, icons, and
- * borders should stay fully opaque.
- */
-@Composable
-fun Color.frosted(): Color {
-    val blurEnabled by Style.enableBlur.observe()
-    if (!blurEnabled) return this
-    val blurOpacity by Style.blurOpacity.observe()
-    return copy(alpha = alpha * blurOpacity)
-}
+
 
 /**
  * Window background that shows the game *and any windows already drawn beneath this one*
@@ -90,7 +77,6 @@ fun Modifier.frostedBackground(color: Color, shape: Shape = RectangleShape): Mod
     if (!blurEnabled) return@composed background(color, shape)
 
     val blurRadius by Style.blurRadius.observe()
-    val blurOpacity by Style.blurOpacity.observe()
     var windowOrigin by remember { mutableStateOf(Offset.Zero) }
 
     onGloballyPositioned { windowOrigin = it.positionInRoot() }
@@ -104,7 +90,7 @@ fun Modifier.frostedBackground(color: Color, shape: Shape = RectangleShape): Mod
             withOutlineClip(outline) {
                 drawFrostedGlass(game, windowOrigin, blurRadius)
             }
-            drawOutline(outline, color.copy(alpha = color.alpha * blurOpacity))
+            drawOutline(outline, color)
         }
 }
 

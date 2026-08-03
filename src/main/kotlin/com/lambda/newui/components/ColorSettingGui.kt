@@ -133,7 +133,9 @@ private fun ColorSlider(label: String, colorValue: Int, onValueChange: (Int) -> 
                 .background(MaterialTheme.colorScheme.primary)
         )
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {

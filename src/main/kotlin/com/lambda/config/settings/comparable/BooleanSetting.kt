@@ -52,6 +52,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.newui.state.LambdaState.observe
 import com.lambda.newui.theme.Radius
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
@@ -68,7 +69,7 @@ class BooleanSetting(
 	@ExperimentalMaterial3Api
 	@Composable
 	override fun gui() {
-		val stateValue by observeState()
+		val stateValue by this.observe()
 		Row(
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(4.dp),

@@ -48,8 +48,9 @@ import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.newui.theme.Radius
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.newui.state.LambdaState.observe
+import com.lambda.newui.theme.Radius
 import java.text.NumberFormat
 import java.util.*
 
@@ -85,7 +86,7 @@ abstract class NumericSetting<T>(
 	@ExperimentalMaterial3Api
 	@Composable
 	override fun gui() {
-		val stateValue by observeState()
+		val stateValue by this.observe()
 		val valueString = stateValue.toString()
 
 		val min = (range.start as Number).toFloat()

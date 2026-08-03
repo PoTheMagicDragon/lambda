@@ -49,6 +49,7 @@ import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.newui.theme.Radius
 import com.lambda.imgui.flag.ImGuiInputTextFlags
+import com.lambda.newui.state.LambdaState.observe
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -69,7 +70,7 @@ class StringSetting(
     @ExperimentalMaterial3Api
     @Composable
     override fun gui() {
-        val stateValue by observeState()
+        val stateValue by this.observe()
         Column(
             modifier = Modifier
                 .fillMaxWidth()

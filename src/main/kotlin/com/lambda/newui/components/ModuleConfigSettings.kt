@@ -59,7 +59,6 @@ import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.modules.client.AutoUpdater
-import com.lambda.newui.frosted
 import com.lambda.newui.theme.Radius
 
 /**
@@ -145,7 +144,7 @@ private fun AutomationConfigSelector(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 16.dp)
-                .background(colorScheme.surfaceContainerHigh.frosted())
+                .background(colorScheme.surfaceContainerHigh)
                 .clickable { expanded = !expanded },
             contentAlignment = Alignment.CenterStart
         ) {
@@ -188,7 +187,7 @@ private fun AutomationConfigSelector(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colorScheme.surfaceContainer.frosted())
+                    .background(colorScheme.surfaceContainer)
             ) {
                 options.forEach { option ->
                     val selected = option === linked
