@@ -67,6 +67,8 @@ import androidx.compose.ui.zIndex
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.frosted
+import com.lambda.newui.frostedBackground
 import com.lambda.newui.state.LambdaState.observe
 import com.lambda.newui.theme.Radius
 import kotlinx.coroutines.launch
@@ -167,7 +169,7 @@ fun CategoryPanel(
                                 .widthIn(min = SETTINGS_MIN_WIDTH, max = SETTINGS_MAX_WIDTH)
                                 .width(IntrinsicSize.Max)
                                 .clip(settingsShape)
-                                .background(colors.surfaceVariant)
+                                .frostedBackground(colors.surfaceVariant, settingsShape)
                                 .border(1.dp, colors.outline, settingsShape)
                                 .pointerInput(isVisible) {
                                     if (isVisible) {
@@ -210,12 +212,12 @@ fun CategoryPanel(
                         }
                     }
                     .clip(shape)
-                    .background(colors.surface)
+                    .frostedBackground(colors.surface, shape)
                     .border(1.dp, colors.outline, shape)
             ) {
                 Row(
                     modifier = Modifier
-                        .background(colors.primaryContainer)
+                        .background(colors.primaryContainer.frosted())
                         .fillMaxWidth()
                         .pointerInput(Unit) {
                             detectDragGestures(

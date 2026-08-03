@@ -62,5 +62,9 @@ object ComposeClickGui : Loadable {
     fun close() {
         if (Client.clientSounds) LambdaSound.ModuleOff.play()
         open = false
+        // Drop our references to the game snapshot. The GPU texture itself lives until the
+        // frosted windows re-record on reopen (their cached draw commands still reference it);
+        // freeing it eagerly would mean closing the scene and losing window positions.
+        ComposeRenderer.releaseBackdrop()
     }
 }

@@ -37,8 +37,10 @@ import com.lambda.newui.theme.SystemThemeTracker
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.BackendRenderTarget
 import org.jetbrains.skia.ColorSpace
+import org.jetbrains.skia.ContentChangeMode
 import org.jetbrains.skia.DirectContext
 import org.jetbrains.skia.FramebufferFormat
+import org.jetbrains.skia.Image
 import org.jetbrains.skia.Surface
 import org.jetbrains.skia.SurfaceColorFormat
 import org.jetbrains.skia.SurfaceOrigin
@@ -78,6 +80,15 @@ object ComposeRenderer {
     private var guiFboView: GpuTextureView? = null
     private var guiFboWidth = 0
     private var guiFboHeight = 0
+
+    // Wrap of the Minecraft framebuffer used to snapshot the game for frosted windows.
+    private var backdropTarget: BackendRenderTarget? = null
+    private var backdropSurface: Surface? = null
+    private var backdropFboId = -1
+    private var backdropWidth = 0
+    private var backdropHeight = 0
+    private var liveBackdropFrame: Image? = null
+    private var retiredBackdropFrame: Image? = null
 
     fun initialize() {
         if (initialized) return
@@ -121,8 +132,6 @@ object ComposeRenderer {
                     directContext = context
                 }
 
-            directContext.resetGLAll()
-
             if (guiFboTexture == null || guiFboWidth != width || guiFboHeight != height) {
                 guiFboView?.close()
                 guiFboTexture?.close()
@@ -153,8 +162,17 @@ object ComposeRenderer {
 
             val guiFboId = (guiFboTexture as GlTexture).getOrCreateFramebuffer((gpuDevice as GlBackend).bufferManager, null)
 
+            // Resolved before resetGLAll so any framebuffer creation stays out of Skia's blind spot.
+            val gameFbo = resolveGameFramebuffer(gpuDevice)
+
             val originalFbId = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING)
             GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, guiFboId)
+
+            // Invalidate Skia's GL state cache only after all of Minecraft's raw GL work above,
+            // so every Skia operation this frame rebinds whatever state it relies on.
+            directContext.resetGLAll()
+
+            updateGameBackdrop(directContext, gameFbo)
 
             if (currentWidth != width || currentHeight != height) {
                 previousRenderTarget?.close()
@@ -276,9 +294,106 @@ object ComposeRenderer {
         )
     }
 
+    private data class GameFbo(val id: Int, val width: Int, val height: Int)
+
+    private fun resolveGameFramebuffer(backend: GlBackend): GameFbo? {
+        if (!Style.enableBlur.value) return null
+        val framebuffer = mc.framebuffer ?: return null
+        val colorTexture = framebuffer.colorAttachment as? GlTexture ?: return null
+        return GameFbo(
+            colorTexture.getOrCreateFramebuffer(backend.bufferManager, null),
+            framebuffer.textureWidth,
+            framebuffer.textureHeight
+        )
+    }
+
+    /**
+     * Snapshots the game framebuffer into a Skia image for [GameBackdrop]. The wrap of an
+     * external render target makes [Surface.makeImageSnapshot] copy, so this is a GPU-side
+     * copy of the frame as rendered so far — exactly what sits behind the GUI windows.
+     */
+    private fun updateGameBackdrop(context: DirectContext, gameFbo: GameFbo?) {
+        if (gameFbo == null) {
+            releaseBackdropTargets()
+            publishBackdropFrame(null)
+            return
+        }
+
+        if (backdropSurface == null ||
+            backdropFboId != gameFbo.id ||
+            backdropWidth != gameFbo.width ||
+            backdropHeight != gameFbo.height
+        ) {
+            releaseBackdropTargets()
+            val target = BackendRenderTarget.makeGL(
+                gameFbo.width, gameFbo.height,
+                sampleCnt = 0,
+                stencilBits = 0,
+                gameFbo.id,
+                FramebufferFormat.GR_GL_RGBA8
+            )
+            backdropTarget = target
+            backdropSurface = Surface.makeFromBackendRenderTarget(
+                context,
+                target,
+                SurfaceOrigin.BOTTOM_LEFT,
+                SurfaceColorFormat.RGBA_8888,
+                ColorSpace.sRGB
+            )
+            backdropFboId = gameFbo.id
+            backdropWidth = gameFbo.width
+            backdropHeight = gameFbo.height
+        }
+
+        publishBackdropFrame(backdropSurface?.let { wrap ->
+            // Skia caches makeImageSnapshot and only re-copies after it observes a write to the
+            // surface. Minecraft mutates the wrapped framebuffer behind Skia's back, so without
+            // this the snapshot would stay frozen at the first frame forever.
+            wrap.notifyContentWillChange(ContentChangeMode.DISCARD)
+            wrap.makeImageSnapshot()
+        })
+    }
+
+    /**
+     * Cached draw commands may reference the previous snapshot until the scene re-records
+     * against the new one during the upcoming render, so it is retired for one frame and
+     * closed on the frame after.
+     */
+    private fun publishBackdropFrame(image: Image?) {
+        if (image == null && liveBackdropFrame == null && retiredBackdropFrame == null) return
+        retiredBackdropFrame?.close()
+        retiredBackdropFrame = liveBackdropFrame
+        liveBackdropFrame = image
+        GameBackdrop.frame.value = image
+    }
+
+    private fun releaseBackdropTargets() {
+        backdropSurface?.close()
+        backdropSurface = null
+        backdropTarget?.close()
+        backdropTarget = null
+        backdropFboId = -1
+        backdropWidth = 0
+        backdropHeight = 0
+    }
+
+    /**
+     * Frees the game snapshot and its framebuffer wrap. Safe while the GUI is closed: nothing
+     * replays the cached draw commands until the next render, which republishes first.
+     */
+    fun releaseBackdrop() {
+        GameBackdrop.frame.value = null
+        liveBackdropFrame?.close()
+        liveBackdropFrame = null
+        retiredBackdropFrame?.close()
+        retiredBackdropFrame = null
+        releaseBackdropTargets()
+    }
+
     fun destroy() {
         scene?.close()
         scene = null
+        releaseBackdrop()
         surface?.close()
         surface = null
         previousRenderTarget?.close()

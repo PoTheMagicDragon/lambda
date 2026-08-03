@@ -18,6 +18,7 @@
 package com.lambda.newui
 
 import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.module.modules.client.Style
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.client.gui.Click
@@ -58,6 +59,10 @@ object ComposeScreen : Screen(buildText { literal("Lambda Screen") }) {
 
     override fun applyBlur(context: DrawContext?) {
         if (!ClickGuiLayout.backgroundBlur) return
+        // Vanilla's fullscreen blur runs before the frosted-window snapshot is taken, so with
+        // both active the windows would blur an already-blurred image and the frosted effect
+        // loses its sharp-outside/frosted-inside contrast. Frosted blur wins; darkening stays.
+        if (Style.enableBlur.value) return
         super.applyBlur(context)
     }
 
