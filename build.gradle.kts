@@ -332,7 +332,7 @@ publishing {
 
     repositories {
         maven(mavenUrl) {
-            name = "lambda-reposilite"
+            name = "lambda-maven"
 
             credentials {
                 username = project.findProperty("mavenUsername").toString()

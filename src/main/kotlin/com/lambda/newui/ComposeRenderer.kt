@@ -317,7 +317,7 @@ object ComposeRenderer {
     private data class GameFbo(val id: Int, val width: Int, val height: Int)
 
     private fun resolveGameFramebuffer(backend: GlBackend): GameFbo? {
-        if (!Style.enableBlur.value) return null
+        if (!Style.blur.value) return null
         val framebuffer = mc.framebuffer ?: return null
         val colorTexture = framebuffer.colorAttachment as? GlTexture ?: return null
         return GameFbo(

@@ -116,7 +116,7 @@ private const val MAX_BLUR_SIGMA = 32f
  * darken toward its borders the way blurring only the clipped region would.
  */
 fun Modifier.frostedBackground(color: Color, shape: Shape = RectangleShape): Modifier = composed {
-    val blurEnabled by Style.enableBlur.observe()
+    val blurEnabled by Style.blur.observe()
     if (!blurEnabled) return@composed background(color, shape)
 
     val blurRadius by Style.blurRadius.observe()

@@ -62,7 +62,7 @@ object ComposeScreen : Screen(buildText { literal("Lambda Screen") }) {
         // Vanilla's fullscreen blur runs before the frosted-window snapshot is taken, so with
         // both active the windows would blur an already-blurred image and the frosted effect
         // loses its sharp-outside/frosted-inside contrast. Frosted blur wins; darkening stays.
-        if (Style.enableBlur.value) return
+        if (Style.blur.value) return
         super.applyBlur(context)
     }
 
