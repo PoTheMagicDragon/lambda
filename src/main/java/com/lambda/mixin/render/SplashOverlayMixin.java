@@ -45,7 +45,7 @@ public class SplashOverlayMixin {
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void onInit(CallbackInfo ci) {
-        LOGO = Identifier.of("lambda", "textures/lambda_banner.png");
+        LOGO = Identifier.of("lambda", "compose/drawable/lambda_banner.png");
     }
 
     @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/function/IntSupplier;getAsInt()I"))
@@ -61,7 +61,7 @@ public class SplashOverlayMixin {
 
         @WrapOperation(method = "loadContents", at = @At(value = "INVOKE", target = "Lnet/minecraft/resource/ResourceFactory;open(Lnet/minecraft/util/Identifier;)Ljava/io/InputStream;"))
         InputStream wrapLoadTextureData(ResourceFactory instance, Identifier id, Operation<InputStream> original) {
-            return LambdaResourceKt.getStream("textures/lambda_banner.png");
+            return LambdaResourceKt.getStream("compose/drawable/lambda_banner.png");
         }
     }
 }

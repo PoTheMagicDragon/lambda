@@ -44,9 +44,9 @@ object FontHandler : Loadable, Config(
 	private val loadedAtlases = ConcurrentHashMap<String, SDFFontAtlas>()
 
 	private val baseFonts = listOf(
-		FontInfo("Minecraft Default", "fonts/MinecraftDefault-Regular.ttf"),
-		FontInfo("FiraSans Regular", "fonts/FiraSans-Regular.ttf"),
-		FontInfo("FiraSans Bold", "fonts/FiraSans-Bold.ttf")
+		FontInfo("Minecraft Default", "font/MinecraftDefault-Regular.ttf"),
+		FontInfo("FiraSans Regular", "font/FiraSans-Regular.ttf"),
+		FontInfo("FiraSans Bold", "font/FiraSans-Bold.ttf")
 	)
 
 	private val discoveredFonts = baseFonts.toMutableList()

@@ -17,6 +17,27 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -26,8 +47,9 @@ import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.newui.theme.Radius
 import com.lambda.imgui.flag.ImGuiInputTextFlags
+import com.lambda.newui.state.LambdaState.observe
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -45,13 +67,47 @@ class StringSetting(
     var flags: Int = ImGuiInputTextFlags.None,
 ) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
 
-    override fun ImGuiBuilder.buildLayout() {
-        if (multiline) {
-            inputTextMultiline(name, ::value, flags = flags)
-        } else {
-            inputText(name, ::value, flags)
+    @ExperimentalMaterial3Api
+    @Composable
+    override fun gui() {
+        val stateValue by this.observe()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 1.dp)
+        ) {
+            Text(
+                text = name,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 1.dp),
+                style = TextStyle(
+                    fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both
+                    )
+                )
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 16.dp)
+                    .clip(RoundedCornerShape(Radius.Small))
+                    .background(Color(0xFF222222))
+                    .padding(2.dp)
+            ) {
+                BasicTextField(
+                    value = stateValue,
+                    onValueChange = { value = it },
+                    singleLine = !multiline,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 9.sp,
+                        color = Color.White
+                    ),
+                    cursorBrush = SolidColor(Color.White)
+                )
+            }
         }
-        lambdaTooltip(description)
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

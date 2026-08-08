@@ -17,6 +17,34 @@
 
 package com.lambda.config.settings.comparable
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -24,7 +52,8 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.newui.state.LambdaState.observe
+import com.lambda.newui.theme.Radius
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -36,9 +65,60 @@ class BooleanSetting(
 	visibility: () -> Boolean,
 	defaultValue: Boolean
 ) : Setting<Boolean>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {
-		checkbox(name, ::value)
-		lambdaTooltip(description)
+
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {
+		val stateValue by this.observe()
+		Row(
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(4.dp),
+			modifier = Modifier
+				.fillMaxWidth()
+				.heightIn(min = 16.dp)
+				.clickable { value = !stateValue }
+				.padding(horizontal = 4.dp)
+		) {
+			val checkColor = colorScheme.onPrimary
+			Box(
+				modifier = Modifier
+					.size(10.dp)
+					.clip(RoundedCornerShape(Radius.ExtraSmall))
+					.background(if (stateValue) colorScheme.primary else Color(0xFF442233)),
+				contentAlignment = Alignment.Center
+			) {
+				if (stateValue) {
+					// Drawn rather than a "✔" glyph: at this size the text box overflows the
+					// 10dp clip and the mark disappears, and the glyph is font dependent.
+					Canvas(modifier = Modifier.fillMaxSize()) {
+						val side = size.minDimension
+						drawPath(
+							path = Path().apply {
+								moveTo(side * 0.22f, side * 0.52f)
+								lineTo(side * 0.42f, side * 0.72f)
+								lineTo(side * 0.78f, side * 0.28f)
+							},
+							color = checkColor,
+							style = Stroke(
+								width = side * 0.16f,
+								cap = StrokeCap.Round,
+								join = StrokeJoin.Round
+							)
+						)
+					}
+				}
+			}
+			Text(
+				text = name,
+				color = colorScheme.onSurface,
+				style = androidx.compose.ui.text.TextStyle(
+					fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+						alignment = LineHeightStyle.Alignment.Center,
+						trim = LineHeightStyle.Trim.Both
+					)
+				)
+			)
+		}
 	}
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

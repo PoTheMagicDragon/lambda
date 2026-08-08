@@ -17,11 +17,11 @@
 
 package com.lambda.config.settings.collections
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.config.serializers.ItemSerializer
-import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.item.Item
 
 class ItemCollectionSetting(
@@ -39,5 +39,7 @@ class ItemCollectionSetting(
 	typeFactory.constructCollectionType(Collection::class.java, Item::class.java),
 	serialize = true,
 ) {
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemSerializer.stringify(it) }
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {}
 }

@@ -17,6 +17,8 @@
 
 package com.lambda.config.entries
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
 import com.lambda.Lambda.mapper
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -32,7 +34,6 @@ import com.lambda.config.EntryCore
 import com.lambda.config.EntryLayer
 import com.lambda.config.MultipleLayerType
 import com.lambda.context.SafeContext
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
@@ -142,7 +143,9 @@ abstract class Setting<T>(
 		core = originalCore
 	}
 
-	abstract fun ImGuiBuilder.buildLayout()
+	@ExperimentalMaterial3Api
+	@Composable
+	abstract fun gui()
 
 	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(string("value as JSON")) { value ->

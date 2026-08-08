@@ -20,6 +20,7 @@ package com.lambda.config.settings.complex
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -32,45 +33,44 @@ import com.lambda.newui.components.ColorSettingGui
 import com.lambda.newui.state.LambdaState.observe
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import java.awt.Color as JColor
 
-class ColorSetting(
-    name: String,
-    description: String,
-    config: Config,
-    layer: SettingEntryLayer<ColorSetting, JColor>,
-    visibility: () -> Boolean,
-    defaultValue: JColor
-) : Setting<JColor>(name, description, defaultValue, layer, config, visibility) {
-    @ExperimentalMaterial3Api
-    @Composable
-    override fun gui() {
-        val stateValue by this.observe()
+class KColorSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingEntryLayer<KColorSetting, Color>,
+	visibility: () -> Boolean,
+	defaultValue: Color
+) : Setting<Color>(name, description, defaultValue, layer, config, visibility) {
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {
+		val stateValue by this.observe()
+		
+		ColorSettingGui(
+			name = name,
+			red = (stateValue.red * 255).toInt(),
+			green = (stateValue.green * 255).toInt(),
+			blue = (stateValue.blue * 255).toInt(),
+			alpha = (stateValue.alpha * 255).toInt(),
+			onColorChange = { r, g, b, a ->
+				value = Color(r / 255f, g / 255f, b / 255f, a / 255f)
+			}
+		)
+	}
 
-        ColorSettingGui(
-            name = name,
-            red = stateValue.red,
-            green = stateValue.green,
-            blue = stateValue.blue,
-            alpha = stateValue.alpha,
-            onColorChange = { r, g, b, a ->
-                value = JColor(r, g, b, a)
-            }
-        )
-    }
-
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer("Red", 0, 255)) { red ->
-            required(integer("Green", 0, 255)) { green ->
-                required(integer("Blue", 0, 255)) { blue ->
-                    optional(integer("Alpha", 0, 255)) { alpha ->
-                        execute {
-                            val alphaValue = alpha?.let { it().value() } ?: 255
-                            trySetValue(JColor(red().value(), green().value(), blue().value(), alphaValue))
-                        }
-                    }
-                }
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(integer("Red", 0, 255)) { red ->
+			required(integer("Green", 0, 255)) { green ->
+				required(integer("Blue", 0, 255)) { blue ->
+					optional(integer("Alpha", 0, 255)) { alpha ->
+						execute {
+							val alphaValue = alpha?.let { it().value() } ?: 255
+							trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
+						}
+					}
+				}
+			}
+		}
+	}
 }

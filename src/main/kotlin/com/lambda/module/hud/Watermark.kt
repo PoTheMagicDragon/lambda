@@ -29,7 +29,7 @@ object Watermark : HudModule(
     tag = ModuleTag.HUD,
     enabledByDefault = true,
 ) {
-    private val texture = upload("textures/lambda.png")
+    private val texture = upload("drawable/lambda.png")
     private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
 
     override fun ImGuiBuilder.buildLayout() {

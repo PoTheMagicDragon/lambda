@@ -18,7 +18,6 @@
 package com.lambda.gui.components
 
 import com.lambda.gui.Layout
-import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.module.Module
@@ -32,7 +31,7 @@ class ModuleEntry(val module: Module): Layout {
 
         ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
         popupContextItem("##ctx-${module.name}") {
-            buildConfigSettingsContext(module)
+//            buildConfigSettingsContext(module)
         }
     }
 }

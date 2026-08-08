@@ -17,6 +17,7 @@
 
 package com.lambda.config
 
+import androidx.compose.ui.graphics.Color
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.ConfigLoader.configs
 import com.lambda.config.entries.ConfigEntryDsl
@@ -39,6 +40,7 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.BlockPosSetting
 import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.config.settings.complex.ColorSetting
+import com.lambda.config.settings.complex.KColorSetting
 import com.lambda.config.settings.complex.KeybindSetting
 import com.lambda.config.settings.complex.Vec3dSetting
 import com.lambda.config.settings.numeric.DoubleSetting
@@ -55,11 +57,11 @@ import net.minecraft.item.Item
 import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import java.awt.Color
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
+import java.awt.Color as JColor
 
 /**
  * Represents a set of [EntryCore]s that are associated with the [name] of the [Config].
@@ -347,10 +349,18 @@ abstract class Config(
 	@ConfigEntryDsl
 	fun setting(
 		name: String,
-		defaultValue: Color,
+		defaultValue: JColor,
 		description: String = "",
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> ColorSetting(name, description, this, layer, visibility, defaultValue) }
+
+	@ConfigEntryDsl
+	fun setting(
+		name: String,
+		defaultValue: Color,
+		description: String = "",
+		visibility: () -> Boolean = { true }
+	) = setting(name) { layer -> KColorSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@ConfigEntryDsl
 	fun setting(

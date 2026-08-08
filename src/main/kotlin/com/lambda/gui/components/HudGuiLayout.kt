@@ -22,7 +22,6 @@ import com.lambda.config.categories.HudCategory
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.gui.snap.RectF
@@ -88,10 +87,10 @@ object HudGuiLayout : Loadable, Config(
                         }
                         separator()
                         menu("HUD Settings") {
-                            buildConfigSettingsContext(this@HudGuiLayout)
+//                            buildConfigSettingsContext(this@HudGuiLayout)
                         }
                         menu("GUI Settings") {
-                            buildConfigSettingsContext(ClickGuiLayout)
+//                            buildConfigSettingsContext(ClickGuiLayout)
                         }
                     }
                     return@buildLayout
@@ -179,7 +178,7 @@ object HudGuiLayout : Loadable, Config(
                             SnapHandler.unregisterElement(hud.name)
                         }
                         separator()
-                        buildConfigSettingsContext(hud)
+//                        buildConfigSettingsContext(hud)
                     }
 
                     if (!isLocked) drawHudCornerArcs(windowDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
@@ -220,10 +219,10 @@ object HudGuiLayout : Loadable, Config(
             }
             separator()
             menu("HUD Settings") {
-                buildConfigSettingsContext(this@HudGuiLayout)
+//                buildConfigSettingsContext(this@HudGuiLayout)
             }
             menu("GUI Settings") {
-                buildConfigSettingsContext(ClickGuiLayout)
+//                buildConfigSettingsContext(ClickGuiLayout)
             }
         }
     }

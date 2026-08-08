@@ -17,10 +17,11 @@
 
 package com.lambda.config.settings.collections
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
 import tools.jackson.databind.JavaType
 
 class MapSetting<K, V>(
@@ -32,5 +33,7 @@ class MapSetting<K, V>(
 	defaultValue: MutableMap<K, V>,
 	val type: JavaType
 ) : Setting<MutableMap<K, V>>(name, description, defaultValue, layer, config, visibility) {
-	override fun ImGuiBuilder.buildLayout() {}
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {}
 }

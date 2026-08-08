@@ -17,16 +17,40 @@
 
 package com.lambda.config.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lambda.config.Config
 import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImGui.calcTextSize
-import com.lambda.imgui.ImGui.dummy
-import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.newui.state.LambdaState.observe
+import com.lambda.newui.theme.Radius
 import java.text.NumberFormat
 import java.util.*
 
@@ -59,39 +83,84 @@ abstract class NumericSetting<T>(
 	 */
 	protected abstract fun ImGuiBuilder.buildSlider()
 
-	override fun ImGuiBuilder.buildLayout() {
-		val showReset = isModified
-		val resetButtonText = "R"
-		val valueString = this@NumericSetting.toString()
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {
+		val stateValue by this.observe()
+		val valueString = stateValue.toString()
 
-		buildSlider()
-		lambdaTooltip(description)
+		val min = (range.start as Number).toFloat()
+		val max = (range.endInclusive as Number).toFloat()
+		val current = (stateValue as Number).toFloat()
+		val fraction = ((current - min) / (max - min)).coerceIn(0f, 1f)
+		val fillColor = MaterialTheme.colorScheme.primary
 
-		val itemRectMin = ImGui.getItemRectMin()
-		val itemRectMax = ImGui.getItemRectMax()
-		val textHeight = ImGui.getTextLineHeight()
-		val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
-		val labelWidth = calcTextSize(name).x
-		val valueWidth = calcTextSize(valueString).x
-
-		val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
-		val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
-
-		windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), name)
-		if (labelEndPosX < valueStartPosX) {
-			windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
-		}
-
-		sameLine(0.0f, style.itemSpacing.x)
-		if (showReset) {
-			button("$resetButtonText##$name") {
-				reset()
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = 4.dp, vertical = 1.dp)
+				.heightIn(min = 16.dp)
+				.clip(RoundedCornerShape(Radius.Small))
+				.background(Color(0xFF333333))
+				// Painted rather than a fillMaxHeight child: the bar now grows to fit a
+				// wrapped label, and fillMaxHeight cannot resolve against a wrap content height.
+				.drawBehind {
+					drawRect(color = fillColor, size = Size(size.width * fraction, size.height))
+				}
+				.pointerInput(Unit) {
+					detectDragGestures { change, _ ->
+						val percent = (change.position.x / size.width).coerceIn(0f, 1f)
+						val newValue = min + (max - min) * percent
+						value = when (stateValue) {
+							is Int -> newValue.toInt() as T
+							is Long -> newValue.toLong() as T
+							is Float -> newValue as T
+							is Double -> newValue.toDouble() as T
+							else -> newValue as T
+						}
+					}
+				}
+				.pointerInput(Unit) {
+					detectTapGestures { offset ->
+						val percent = (offset.x / size.width).coerceIn(0f, 1f)
+						val newValue = min + (max - min) * percent
+						value = when (stateValue) {
+							is Int -> newValue.toInt() as T
+							is Long -> newValue.toLong() as T
+							is Float -> newValue as T
+							is Double -> newValue.toDouble() as T
+							else -> newValue as T
+						}
+					}
+				},
+			contentAlignment = Alignment.CenterStart
+		) {
+			Row(
+				modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Text(
+					text = name,
+					color = Color.White,
+					style = TextStyle(
+						fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+							alignment = LineHeightStyle.Alignment.Center,
+							trim = LineHeightStyle.Trim.Both
+						)
+					)
+				)
+				Text(
+					text = valueString,
+					color = Color.White,
+					style = TextStyle(
+						fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+							alignment = LineHeightStyle.Alignment.Center,
+							trim = LineHeightStyle.Trim.Both
+						)
+					)
+				)
 			}
-			onItemHover {
-				tooltip { text("Reset to default") }
-			}
-		} else {
-			dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
 		}
 	}
 
@@ -113,3 +182,4 @@ abstract class NumericSetting<T>(
 		}
 	}
 }
+

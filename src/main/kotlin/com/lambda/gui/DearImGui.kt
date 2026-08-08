@@ -67,9 +67,9 @@ object DearImGui : Loadable {
         val size = BASE_FONT_SCALE * scale
         with(io.fonts) {
             clear()
-            addFontFromMemoryTTF("fonts/FiraSans-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
-            addFontFromMemoryTTF("fonts/FiraSans-Bold.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
-            addFontFromMemoryTTF("fonts/MinecraftDefault-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
+            addFontFromMemoryTTF("font/FiraSans-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
+            addFontFromMemoryTTF("font/FiraSans-Bold.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
+            addFontFromMemoryTTF("font/MinecraftDefault-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
             build()
         }
         implGl3.createFontsTexture()

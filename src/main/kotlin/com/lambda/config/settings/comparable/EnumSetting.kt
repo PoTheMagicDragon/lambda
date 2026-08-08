@@ -17,6 +17,37 @@
 
 package com.lambda.config.settings.comparable
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.value
@@ -26,11 +57,10 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.Describable
+import com.lambda.newui.state.LambdaState.observe
+import com.lambda.newui.theme.Radius
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
-import com.lambda.util.extension.displayValue
 import net.minecraft.command.CommandRegistryAccess
 
 class EnumSetting<T : Enum<T>>(
@@ -41,24 +71,95 @@ class EnumSetting<T : Enum<T>>(
     visibility: () -> Boolean,
     defaultValue: T
 ) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
-    override fun ImGuiBuilder.buildLayout() {
-        val values = value.enumValues
-        val currentDisplay = value.displayValue
-        val currentIndex = value.ordinal
+    @ExperimentalMaterial3Api
+    @Composable
+    override fun gui() {
+        val stateValue by this.observe()
+        var expanded by remember { mutableStateOf(false) }
 
-        combo("##$name", preview = "$name: $currentDisplay") {
-            values.forEachIndexed { idx, v ->
-                val isSelected = idx == currentIndex
-
-                selectable(v.displayValue, isSelected) {
-                    if (!isSelected) value = values[idx % values.size]
+        Column(
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 1.dp)
+                // Clipped as a whole so the field and its open list read as one control.
+                .clip(RoundedCornerShape(Radius.Small))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 16.dp)
+                    .background(Color(0xFF442233))
+                    .clickable { expanded = !expanded },
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                ) {
+                    Text(
+                        text = "$name: ${stateValue.name.capitalize()}",
+                        color = Color.White,
+                        style = TextStyle(
+                            fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+                                alignment = LineHeightStyle.Alignment.Center,
+                                trim = LineHeightStyle.Trim.Both
+                            )
+                        )
+                    )
+                    
+                    Text(
+                        text = if (expanded) "▲" else "▼",
+                        color = Color.White,
+                        style = TextStyle(
+                            fontSize = 7.sp, lineHeight = 7.sp, lineHeightStyle = LineHeightStyle(
+                                alignment = LineHeightStyle.Alignment.Center,
+                                trim = LineHeightStyle.Trim.Both
+                            )
+                        )
+                    )
                 }
-
-                (v as? Describable)?.let { lambdaTooltip(it.description) }
+            }
+            
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(150)) + fadeIn(animationSpec = tween(150)),
+                exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF331122))
+                ) {
+                    stateValue.enumValues.forEach { enumValue ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 16.dp)
+                                .clickable {
+                                    value = enumValue
+                                    expanded = false
+                                }
+                                .background(if (stateValue == enumValue) Color(0xFF552233) else Color.Transparent)
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Text(
+                                text = enumValue.name.capitalize(),
+                                color = if (stateValue == enumValue) Color.White else Color.Gray,
+                                style = TextStyle(
+                                    fontSize = 9.sp, lineHeight = 9.sp, lineHeightStyle = LineHeightStyle(
+                                        alignment = LineHeightStyle.Alignment.Center,
+                                        trim = LineHeightStyle.Trim.Both
+                                    )
+                                )
+                            )
+                        }
+                    }
+                }
             }
         }
-
-        lambdaTooltip(description)
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

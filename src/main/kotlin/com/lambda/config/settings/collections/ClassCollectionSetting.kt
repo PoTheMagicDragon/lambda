@@ -17,11 +17,11 @@
 
 package com.lambda.config.settings.collections
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.ReflectionUtils.className
 
 /**
  * @see [CollectionSetting]
@@ -46,5 +46,7 @@ class ClassCollectionSetting<T : Any>(
 	typeFactory.constructCollectionType(Collection::class.java, Any::class.java),
 	serialize = false,
 ) {
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.className }
+	@ExperimentalMaterial3Api
+	@Composable
+	override fun gui() {}
 }

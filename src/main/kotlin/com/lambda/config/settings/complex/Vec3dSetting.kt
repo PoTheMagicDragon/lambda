@@ -17,6 +17,8 @@
 
 package com.lambda.config.settings.complex
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
 import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -24,7 +26,6 @@ import com.lambda.brigadier.required
 import com.lambda.config.Config
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
@@ -37,10 +38,9 @@ class Vec3dSetting(
     visibility: () -> Boolean,
     defaultValue: Vec3d
 ) : Setting<Vec3d>(name, description, defaultValue, layer, config, visibility) {
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(name, ::value as Vec3d) // FixMe: what the fuck
-        lambdaTooltip(description)
-    }
+    @ExperimentalMaterial3Api
+    @Composable
+    override fun gui() {}
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(double("X", -30000000.0, 30000000.0)) { x ->
