@@ -17,11 +17,14 @@
 
 package com.lambda.module.hud
 
+import androidx.compose.runtime.Composable
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.hud.ComposeHud
+import com.lambda.newui.hud.HudText
 
 @Suppress("unused")
 object Baritone : HudModule(
@@ -30,16 +33,21 @@ object Baritone : HudModule(
     tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        if (!BaritoneHandler.baritoneAvailable) {
-            text("Baritone is not loaded")
-            return
-        }
+        text(status())
+    }
 
-        BaritoneHandler.primary?.customGoalProcess?.goal?.let {
-            when(it) {
-                is BuildGoal -> text("Lambda Simulation: ${it.sim}")
-                else -> text("Baritone: $it")
-            }
-        } ?: text("No Baritone Process Running")
+    @Composable
+    override fun Content() {
+        ComposeHud.observeTick()
+        HudText(status())
+    }
+
+    private fun status(): String {
+        if (!BaritoneHandler.baritoneAvailable) return "Baritone is not loaded"
+        return when (val goal = BaritoneHandler.primary?.customGoalProcess?.goal) {
+            null -> "No Baritone Process Running"
+            is BuildGoal -> "Lambda Simulation: ${goal.sim}"
+            else -> "Baritone: $goal"
+        }
     }
 }

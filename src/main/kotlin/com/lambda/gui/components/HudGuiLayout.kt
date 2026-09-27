@@ -17,6 +17,10 @@
 
 package com.lambda.gui.components
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color as ComposeColor
 import com.lambda.config.Config
 import com.lambda.config.categories.HudCategory
 import com.lambda.core.Loadable
@@ -45,13 +49,30 @@ object HudGuiLayout : Loadable, Config(
     "HUD",
     HudCategory
 ) {
-    // HUD Outline
-    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f)
-    val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90))
-    val hudOutlineBorderColor by setting("HUD Corner Border Color", Color(190, 190, 190, 200))
-    val hudOutlineHaloThickness by setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f)
-    val hudOutlineBorderThickness by setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f)
-    val hudOutlineCornerInflate by setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc")
+    /**
+     * The HUD is rendered by the Compose overlay ([com.lambda.newui.hud.HudLayer]). The ImGui
+     * path below is kept, switched off, until the Compose port has settled.
+     */
+    private const val USE_IMGUI_HUD = false
+
+    // Kept as Setting references (not delegated) so the Compose HUD can observe() them; the
+    // delegated names further down serve the ImGui path.
+    val cornerRadius = setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f, "Rounding of element backgrounds and of the editing corner marks")
+    val haloColor = setting("HUD Corner Halo Color", Color(140, 140, 140, 90))
+    val borderColor = setting("HUD Corner Border Color", Color(190, 190, 190, 200))
+    val haloThickness = setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f)
+    val borderThickness = setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f)
+    val cornerInflate = setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc")
+    val textColor = setting("Text Color", ComposeColor.White, "Colour of HUD text")
+    val scale = setting("Scale", 1.0f, 0.5f..3.0f, 0.05f, "Size of HUD text")
+
+    // HUD Outline (ImGui path)
+    val hudOutlineCornerRadius by cornerRadius
+    val hudOutlineHaloColor by haloColor
+    val hudOutlineBorderColor by borderColor
+    val hudOutlineHaloThickness by haloThickness
+    val hudOutlineBorderThickness by borderThickness
+    val hudOutlineCornerInflate by cornerInflate
 
     const val DEFAULT_HUD_FLAGS =
         ImGuiWindowFlags.NoDecoration or
@@ -67,8 +88,9 @@ object HudGuiLayout : Loadable, Config(
     private val snapOverlays = mutableMapOf<String, SnapHandler.SnapVisual>()
     private var mousePressedThisFrameGlobal = false
 
-    var isShownInGUI = true
-    var isLocked = false
+    // Editing toggles. Compose state so the HUD layer follows them; not persisted, as before.
+    var isShownInGUI by mutableStateOf(true)
+    var isLocked by mutableStateOf(false)
 
     private const val PI_F = PI.toFloat()
     private const val HALF_PI_F = (0.5f * PI).toFloat()
@@ -77,6 +99,7 @@ object HudGuiLayout : Loadable, Config(
 
     init {
         listen<GuiEvent.NewImguiFrame> {
+            if (!USE_IMGUI_HUD) return@listen
             if (mc.options.hudHidden) return@listen
 
             buildLayout {

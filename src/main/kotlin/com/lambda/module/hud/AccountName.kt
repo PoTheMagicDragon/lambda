@@ -17,9 +17,12 @@
 
 package com.lambda.module.hud
 
+import androidx.compose.runtime.Composable
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.hud.ComposeHud
+import com.lambda.newui.hud.HudText
 import com.lambda.threading.runSafe
 
 @Suppress("unused")
@@ -30,5 +33,12 @@ object AccountName : HudModule(
 ) {
     override fun ImGuiBuilder.buildLayout() {
         runSafe { text(player.name.string) }
+    }
+
+    @Composable
+    override fun Content() {
+        ComposeHud.observeTick()
+        val name = runSafe { player.name.string } ?: return
+        HudText(name)
     }
 }

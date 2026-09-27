@@ -17,10 +17,24 @@
 
 package com.lambda.module.hud
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.dp
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImVec2
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.hud.ComposeHud
+import com.lambda.newui.hud.HudText
+import com.lambda.newui.hud.hudTextColor
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.ServerTPSUtils
 import com.lambda.util.ServerTPSUtils.recentData
@@ -58,5 +72,48 @@ object Tps : HudModule(
 			graphSize = ImVec2(graphWidth, graphHeight),
 			stride = graphStride
 		)
+	}
+
+	@Composable
+	override fun Content() {
+		ComposeHud.observeTick()
+		val data = recentData(format)
+		if (data.isEmpty()) {
+			HudText("No ${format.displayName} data yet")
+			return
+		}
+		val current = data.last()
+		val avg = data.average().toFloat()
+		if (!showGraph) {
+			HudText("${format.displayName}: ${avg.format()}${format.unit}")
+			return
+		}
+		val overlay = "cur ${current.format()}${format.unit} | avg ${avg.format()}${format.unit}"
+		val lineColor = hudTextColor()
+
+		Box(
+			modifier = Modifier
+				.size(graphWidth.dp, graphHeight.dp)
+				.drawBehind { drawGraph(data, graphStride, lineColor) },
+			contentAlignment = Alignment.TopCenter
+		) {
+			HudText(overlay)
+		}
+	}
+
+	/** A line through every [stride]th sample, scaled to the samples' range, over a dim backdrop. */
+	private fun DrawScope.drawGraph(values: FloatArray, stride: Int, color: Color) {
+		drawRect(Color.Black.copy(alpha = 0.35f))
+		val points = values.filterIndexed { index, _ -> index % stride == 0 }
+		if (points.size < 2) return
+		val min = points.min()
+		val range = (points.max() - min).takeIf { it > 0f } ?: 1f
+		val path = Path()
+		points.forEachIndexed { index, value ->
+			val x = index * size.width / (points.size - 1)
+			val y = size.height - (value - min) / range * size.height
+			if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+		}
+		drawPath(path, color, style = Stroke(1.5.dp.toPx()))
 	}
 }

@@ -17,6 +17,9 @@
 
 package com.lambda.newui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
@@ -25,12 +28,14 @@ import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.OverlayBackgroundScreen
 import com.lambda.module.modules.client.Client
+import com.lambda.newui.hud.ComposeHud
 import com.lambda.newui.theme.SystemThemeTracker
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 
 object ComposeClickGui : Loadable {
-    var open = false
+    // Compose state: the overlay places the click GUI, and switches the HUD into editing, on it.
+    var open by mutableStateOf(false)
         private set
 
     override fun load(): String {
@@ -39,8 +44,12 @@ object ComposeClickGui : Loadable {
     }
 
     init {
+        // One render per frame covers the whole overlay: the HUD whenever it has something to
+        // show, plus the click GUI while it is open.
         listenUnsafe<GuiEvent.EndImguiFrame> {
-            if (!open) return@listenUnsafe
+            if (!open && !ComposeHud.hasVisibleElements) return@listenUnsafe
+            if (!ComposeRenderer.ensureInitialized()) return@listenUnsafe
+            ComposeHud.onFrame()
             ComposeRenderer.render()
         }
 
@@ -85,6 +94,8 @@ object ComposeClickGui : Loadable {
     fun close() {
         if (Client.clientSounds) LambdaSound.ModuleOff.play()
         open = false
+        // The HUD menu only exists while editing; left set, it would reappear on the next open.
+        ComposeHud.contextMenu = null
         // Drop our references to the game snapshot. The GPU texture itself lives until the
         // frosted windows re-record on reopen (their cached draw commands still reference it);
         // freeing it eagerly would mean closing the scene and losing window positions.

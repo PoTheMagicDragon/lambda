@@ -17,12 +17,15 @@
 
 package com.lambda.module.hud
 
+import androidx.compose.runtime.Composable
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.hud.ComposeHud
+import com.lambda.newui.hud.HudText
 import com.lambda.util.SpeedUnit
 import net.minecraft.util.math.Vec3d
 
@@ -68,5 +71,11 @@ object Speedometer : HudModule(
 
     override fun ImGuiBuilder.buildLayout() {
         text("Speed: %.2f %s".format(speed, speedUnit.unitName))
+    }
+
+    @Composable
+    override fun Content() {
+        ComposeHud.observeTick()
+        HudText("Speed: %.2f %s".format(speed, speedUnit.unitName))
     }
 }

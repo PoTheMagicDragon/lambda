@@ -17,12 +17,15 @@
 
 package com.lambda.module.hud
 
+import androidx.compose.runtime.Composable
 import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.blocks.FormatterSettings
 import com.lambda.config.withEdits
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.hud.ComposeHud
+import com.lambda.newui.hud.HudText
 import com.lambda.threading.runSafe
 import com.lambda.util.FormattingUtils.format
 
@@ -42,5 +45,13 @@ object Rotation : HudModule(
 			val rotation = player.rotationClient.format(formatter)
 			textCopyable(rotation)
 		}
+	}
+
+	@Composable
+	override fun Content() {
+		// Follows the mouse, so it refreshes per frame rather than per tick.
+		ComposeHud.observeFrame()
+		val rotation = runSafe { player.rotationClient.format(formatter) } ?: return
+		HudText(rotation)
 	}
 }

@@ -18,6 +18,7 @@
 package com.lambda.newui
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
@@ -71,6 +72,7 @@ object ComposeRenderer {
     private var currentWidth = 0
     private var currentHeight = 0
     private var initialized = false
+    private var initializationFailed = false
 
     /**
      * The scene's size in framebuffer pixels, which is also the coordinate space
@@ -110,7 +112,7 @@ object ComposeRenderer {
             invalidate = {}
         ).apply {
             setContent {
-                ClickGuiContent()
+                LambdaOverlay()
             }
         }
 
@@ -123,21 +125,53 @@ object ComposeRenderer {
     }
 
     /**
+     * Initializes on first use, so the HUD can render before the click GUI was ever opened. A
+     * failed attempt is logged once and not retried on every frame.
+     */
+    fun ensureInitialized(): Boolean {
+        if (initialized) return true
+        if (initializationFailed) return false
+        return runCatching { initialize() }
+            .onFailure {
+                initializationFailed = true
+                LOG.error("Compose renderer failed to initialize; the Compose GUI and HUD are unavailable", it)
+            }
+            .isSuccess
+    }
+
+    /**
      * @param composite whether to draw the finished GUI onto Minecraft's framebuffer. Pass
      *   false to warm the pipeline up - the scene still renders into the offscreen buffer,
      *   compiling Skia's shaders and building its glyph atlas, but nothing reaches the screen.
      */
     fun render(composite: Boolean = true) {
-        if (!initialized || scene == null) return
+        val currentScene = scene ?: return
+        if (!initialized) return
 
-        // Throttled internally, and only reached while the GUI is open, so the OS theme is
-        // never queried when nothing is on screen.
+        // Throttled internally, so polling on every frame the HUD is on screen stays cheap.
         SystemThemeTracker.poll()
         Style.updateLambdaTheme()
 
         val width = mc.window.framebufferWidth
         val height = mc.window.framebufferHeight
         if (width <= 0 || height <= 0) return
+
+        val clickGuiOpen = ComposeClickGui.open
+        val resized = currentWidth != width || currentHeight != height
+
+        // State written from the client thread sits in the global snapshot until the apply
+        // notifications go out; only then does the scene know it has work.
+        Snapshot.sendApplyNotifications()
+        // With the click GUI closed only the HUD is on screen, and on most frames nothing in it
+        // changed: composite the previous frame's GUI buffer again rather than redrawing it. The
+        // click GUI redraws every frame, since its frosted windows follow the game behind them.
+        if (!clickGuiOpen && !resized && guiFboView != null && !currentScene.hasInvalidations()) {
+            if (composite) {
+                runCatching { compositeGui(glow = false) }
+                    .onFailure { LOG.error("Error compositing Compose UI", it) }
+            }
+            return
+        }
 
         val glState = saveGLState()
         resetPixelStore()
@@ -233,20 +267,26 @@ object ComposeRenderer {
 
             if (!composite) return
 
-            guiFboView?.let { view ->
-                GuiGlowRenderer.renderGlow(
-                    view,
-                    if (Style.enableGlow) Style.glowRadius else 0f,
-                    if (Style.enableGlow) Style.glowIntensity else 0f,
-                    Style.glowColor1,
-                    Style.glowColor2
-                )
-            }
+            // The glow shader searches a radius around every empty pixel of the screen, far too
+            // much for every gameplay frame, so only the click GUI glows.
+            compositeGui(glow = clickGuiOpen && Style.enableGlow)
         } catch (e: Exception) {
             LOG.error("Error rendering Compose UI", e)
         } finally {
             restoreGLState(glState)
         }
+    }
+
+    /** Draws the GUI buffer onto Minecraft's framebuffer: through the glow shader, or as a plain blit. */
+    private fun compositeGui(glow: Boolean) {
+        val view = guiFboView ?: return
+        GuiGlowRenderer.renderGlow(
+            view,
+            if (glow) Style.glowRadius else 0f,
+            if (glow) Style.glowIntensity else 0f,
+            Style.glowColor1,
+            Style.glowColor2
+        )
     }
 
     fun sendMouseMove(x: Double, y: Double) {
@@ -317,7 +357,8 @@ object ComposeRenderer {
     private data class GameFbo(val id: Int, val width: Int, val height: Int)
 
     private fun resolveGameFramebuffer(backend: GlBackend): GameFbo? {
-        if (!Style.blur.value) return null
+        // Only the click GUI's windows are frosted; the HUD never needs the copy.
+        if (!Style.blur.value || !ComposeClickGui.open) return null
         val framebuffer = mc.framebuffer ?: return null
         val colorTexture = framebuffer.colorAttachment as? GlTexture ?: return null
         return GameFbo(

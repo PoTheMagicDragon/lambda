@@ -301,9 +301,12 @@ object LambdaRenderPipelines : Loadable {
 				.build()
 		)
 
+	// No projection snippet: the shader draws a clip-space quad and never reads Projection, and
+	// declaring it would fail the pass on frames where Minecraft has no projection bound yet (the
+	// loading overlay), which the Compose HUD composites over.
 	val GUI_GLOW: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+			RenderPipeline.builder()
 				.withLocation(Identifier.of("lambda", "pipeline/gui_glow"))
 				.withVertexShader(Identifier.of("lambda", "core/gui_glow"))
 				.withFragmentShader(Identifier.of("lambda", "core/gui_glow"))

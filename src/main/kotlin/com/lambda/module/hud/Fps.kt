@@ -17,11 +17,16 @@
 
 package com.lambda.module.hud
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newui.hud.HudText
 import com.lambda.util.collections.LimitedDecayQueue
 import kotlin.time.Duration.Companion.seconds
 
@@ -37,7 +42,8 @@ object Fps : HudModule(
 	val frames = LimitedDecayQueue<Unit>(Int.MAX_VALUE, 1.seconds.inWholeMilliseconds)
 	var lastUpdated = System.currentTimeMillis()
 	var lastFrameTime = System.nanoTime()
-	var fps = 0
+	// Compose state, so the HUD element redraws exactly when the value is refreshed.
+	var fps by mutableIntStateOf(0)
 
 	init {
 		listen<RenderEvent.RenderWorld> {
@@ -62,5 +68,10 @@ object Fps : HudModule(
 
 	override fun ImGuiBuilder.buildLayout() {
 		text("FPS: $fps")
+	}
+
+	@Composable
+	override fun Content() {
+		HudText("FPS: $fps")
 	}
 }
