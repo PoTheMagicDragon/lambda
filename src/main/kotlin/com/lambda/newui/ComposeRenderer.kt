@@ -103,6 +103,10 @@ object ComposeRenderer {
     private var liveBackdropFrame: Image? = null
     private var retiredBackdropFrame: Image? = null
 
+    // Item strips HUD elements asked for; rendered with Minecraft's item renderer each frame
+    // they change, see ItemImageBuffer.
+    private val itemBuffers = LinkedHashSet<ItemImageBuffer>()
+
     fun initialize() {
         if (initialized) return
 
@@ -165,7 +169,8 @@ object ComposeRenderer {
         // With the click GUI closed only the HUD is on screen, and on most frames nothing in it
         // changed: composite the previous frame's GUI buffer again rather than redrawing it. The
         // click GUI redraws every frame, since its frosted windows follow the game behind them.
-        if (!clickGuiOpen && !resized && guiFboView != null && !currentScene.hasInvalidations()) {
+        val itemsDirty = itemBuffers.any { it.needsRender }
+        if (!clickGuiOpen && !resized && !itemsDirty && guiFboView != null && !currentScene.hasInvalidations()) {
             if (composite) {
                 runCatching { compositeGui(glow = false) }
                     .onFailure { LOG.error("Error compositing Compose UI", it) }
@@ -215,6 +220,9 @@ object ComposeRenderer {
             // Resolved before resetGLAll so any framebuffer creation stays out of Skia's blind spot.
             val gameFbo = resolveGameFramebuffer(gpuDevice)
 
+            // Plain Minecraft rendering, so it too stays ahead of Skia's state reset.
+            itemBuffers.forEach { it.renderItems(gpuDevice) }
+
             val originalFbId = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING)
             GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, guiFboId)
 
@@ -223,6 +231,7 @@ object ComposeRenderer {
             directContext.resetGLAll()
 
             updateGameBackdrop(directContext, gameFbo)
+            itemBuffers.forEach { it.snapshot(directContext) }
 
             if (currentWidth != width || currentHeight != height) {
                 previousRenderTarget?.close()
@@ -275,6 +284,16 @@ object ComposeRenderer {
         } finally {
             restoreGLState(glState)
         }
+    }
+
+    /** Starts rendering [buffer]'s items every frame they change. Call from the render thread. */
+    fun registerItemBuffer(buffer: ItemImageBuffer) {
+        itemBuffers += buffer
+    }
+
+    /** Stops rendering [buffer] and frees its GPU resources. Call from the render thread. */
+    fun unregisterItemBuffer(buffer: ItemImageBuffer) {
+        if (itemBuffers.remove(buffer)) buffer.close()
     }
 
     /** Draws the GUI buffer onto Minecraft's framebuffer: through the glow shader, or as a plain blit. */
@@ -454,6 +473,8 @@ object ComposeRenderer {
     fun destroy() {
         scene?.close()
         scene = null
+        itemBuffers.forEach { it.close() }
+        itemBuffers.clear()
         releaseBackdrop()
         surface?.close()
         surface = null

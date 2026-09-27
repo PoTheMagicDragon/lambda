@@ -69,13 +69,6 @@ object ComposeHud : Loadable {
     fun observeTick(): Long = tick
 
     /**
-     * The rendered frame count, for draw scopes: reading it while drawing invalidates that draw
-     * on every frame, which is what an animation drawn in [androidx.compose.ui.draw.drawWithContent]
-     * needs, without recomposing anything.
-     */
-    val frameCount: Long get() = frame
-
-    /**
      * Subscribes the calling composable to every rendered frame. Costs a recomposition per frame,
      * so reserve it for values that visibly move between ticks, like the camera rotation.
      */
